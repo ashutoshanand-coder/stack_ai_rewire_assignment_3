@@ -1,0 +1,23 @@
+{
+  "use_case": "UC1",
+  "model": "claude-haiku-5-5",
+  "stages": {
+    "profile": 64.8,
+    "assess": 54.7,
+    "memo": 38.5
+  },
+  "totals": {
+    "llm_calls": 28,
+    "input_tokens": 300516,
+    "output_tokens": 58548,
+    "cache_read_input_tokens": 0,
+    "tool_calls": 19,
+    "tool_errors": 1,
+    "http_requests": 9,
+    "http_refused": 1
+  },
+  "warnings": [
+    "dataset link host 'catalog.data.gov' is not allowlisted; inspection will be refused (gap G6)"
+  ],
+  "finished_at": "2026-11-12T06:49:19Z"
+}

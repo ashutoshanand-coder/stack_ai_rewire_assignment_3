@@ -1,0 +1,167 @@
+{
+  "assessments": [
+    {
+      "source_id": "api.nager_public_holidays",
+      "verdict": "feasible_with_conditions",
+      "red_flags": [],
+      "conditions": [
+        "Confirm in writing that the holiday data (not only the MIT-licensed repository code) may be used commercially; the record states commercial_use 'unknown'. If this cannot be confirmed, treat as LIC-UNKNOWN and reject.",
+        "Probe and check 2025 (not probed), so the history window 2023-06-01 to 2025-05-31 is fully covered.",
+        "Check the full IT holiday list per year against the official national calendar (only the first three records per year were visible; the probe count of 13 and 14 holidays is above the commonly cited ~12, unverified).",
+        "Confirm which endpoint to use: the register lists /api/v3/PublicHolidays while the README documents /api/v4/Holidays; confirm v3 is still supported.",
+        "Local holidays (e.g. the shop town's patron-saint day) are not covered; source them from N5 or a local calendar."
+      ],
+      "rationale": "Open, keyless, structured API returning HTTP 200 for 2023, 2024 and 2026 with a documented 9-field shape. No rule flags fired. Remaining uncertainty is the data-specific licence (only the repository MIT licence was found), 2025 coverage, completeness of the national list, and the v3/v4 endpoint question. These are conditions, not blockers. Suitable for the national-holiday calendar in N4.",
+      "who_can_resolve": [
+        "Legal / data governance (licence and commercial-use position)",
+        "Analytics team (2025 probe, full-list check against official calendar, endpoint version)"
+      ]
+    },
+    {
+      "source_id": "api.open_meteo_archive",
+      "verdict": "feasible_with_conditions",
+      "red_flags": [
+        {
+          "code": "LIC-ATTRIBUTION",
+          "evidence": "Licence CC BY 4.0; licence page requires 'Weather data by Open-Meteo.com' link next to displayed location data (rule flag, kept).",
+          "severity": "minor"
+        },
+        {
+          "code": "LIC-MIXED",
+          "evidence": "Licence page lists upstream sources with differing licences (DWD and ECMWF CC-BY, UK Met Office CC-BY-SA, C3S reanalysis and Météo-France under a Copernicus licence PDF that was not read) (rule flag, kept).",
+          "severity": "major"
+        }
+      ],
+      "conditions": [
+        "Legal sign-off before production use, as the register policy requires; prototyping is allowed now.",
+        "Read the Copernicus C3S licence and the upstream licence terms (not read) before production; commercial use is unconfirmed.",
+        "Owner must confirm the shop's town; probes used Milan-area coordinates (45.46 N, 9.19 E, snapped to grid 45.448154, 9.169279). Record the assumption in decisions.md.",
+        "Set timezone=Europe/Rome in the query (register default is UTC, Lisbon coordinates are the register default); confirm local daily boundaries.",
+        "Probe the full window 2023-06-01 to 2026-03-31 for gaps and confirm the archive reaches 2026-03-31; only endpoint dates were sampled.",
+        "Disclose that this is modelled reanalysis on a grid cell, not station observations, and validate against any local observations if available."
+      ],
+      "rationale": "Daily max temperature (temperature_2m_max, °C) is returned for sampled dates in the history and recent windows, with no PII. Two rule flags (attribution and mixed upstream licences) are not blockers. Main risks are the unconfirmed shop location, the timezone setting, unsampled coverage between probes, and production licensing. Meets the must need N3 with conditions.",
+      "who_can_resolve": [
+        "Owner (shop town and coordinates)",
+        "Legal (production licence, Copernicus and upstream terms)",
+        "Analytics team (timezone setting, full-window probe, attribution text)"
+      ]
+    },
+    {
+      "source_id": "internal.sales.daily_by_product",
+      "verdict": "feasible_with_conditions",
+      "red_flags": [
+        {
+          "code": "ACC-RESTRICTED",
+          "evidence": "auth_required=true, classification 'confidential', access 'Request to Retail Operations' (rule flag, kept).",
+          "severity": "major"
+        },
+        {
+          "code": "INT-JOIN-KEY-MISMATCH",
+          "evidence": "Wiki product_codes_2024 (2024-04-02): from 2024-04-01 codes ending in 'L' were replaced by new codes; 'No mapping table exists'; old and new codes 'can only be matched by product name, and some names are not unique'. The product key is re-keyed across the 2024 change.",
+          "severity": "major"
+        },
+        {
+          "code": "DQ-SEMANTIC-ENCODING",
+          "evidence": "Product meaning is carried in code suffixes ('Codes ending in L'); the catalog says only 'see the product list' and the product list holds only current codes.",
+          "severity": "major"
+        }
+      ],
+      "conditions": [
+        "Obtain access approval from Retail Operations and confirm the warehouse location is reachable for the project.",
+        "Build a documented old-to-new product code bridge for N2 (name matching is ambiguous; resolve duplicate names with Retail Operations) before any before/after analysis.",
+        "Treat 2024-02-05 to 2024-03-10 as missing, not zero (wiki till_migration_2024); the catalog omits this gap, so record it in the pipeline spec.",
+        "Confirm whether zero-sales days are stored as zero rows or omitted; confirm the till-day cut-off timezone, refund/void handling and whether revenue_eur is gross or net of VAT.",
+        "Confirm that the table covers only the Valdena shop (no store column; single-shop scope is assumed)."
+      ],
+      "rationale": "Only internal source of daily units and revenue by product, with catalog coverage from 2022-01-01 and open-ended daily refresh (last refreshed 2026-10-14). It can serve N1 for both windows once access is granted and the 2024 gap is handled. It cannot serve N2 on its own, because the code change has no mapping table. Its metadata is consistent with the wiki (the gap is omitted from the catalog but not contradicted). No calibration reject applies.",
+      "who_can_resolve": [
+        "Retail Operations (access approval, till conventions, code mapping)",
+        "Analytics team (pipeline handling of the 2024 gap)"
+      ]
+    },
+    {
+      "source_id": "internal.sales.products",
+      "verdict": "not_feasible",
+      "red_flags": [
+        {
+          "code": "INT-NO-JOIN-KEY",
+          "evidence": "Source 'lists only current codes' (wiki product_codes_2024; catalog and summary); 'No mapping table exists between the old and new codes'. No key links the pre-2024 codes that N2 needs; the only bridge is product name, which is 'not unique'.",
+          "severity": "major"
+        }
+      ],
+      "conditions": [
+        "Would need a separate, historical product list with pre-2024 codes and a mapping table to serve N2; none is documented in the sources read."
+      ],
+      "rationale": "The need is a mapping of product codes before and after the 2024 change. This source holds only current codes, and the wiki confirms no mapping exists, so it cannot serve N2 (a must need) and cannot serve the history window for codes. It is useful only as a name and category reference for current codes. Its last_refreshed is 2025-03-31, so changes after that date (including part of the recent window) are not reflected; this is a freshness gap, not a rule flag. Not feasible for its proposed purpose.",
+      "who_can_resolve": [
+        "Retail Operations (historical product master with pre-2024 codes and mapping table)"
+      ]
+    },
+    {
+      "source_id": "internal.store.calendar",
+      "verdict": "not_feasible",
+      "red_flags": [
+        {
+          "code": "DQ-METADATA-CONTRADICTION",
+          "evidence": "Catalog row_count_approx is about 1,500, but the catalog's own daily grain from 2022-01-01 to last_refreshed 2026-10-10 implies roughly 4,660 rows. Quality notes: 'Either the table has gaps or the row count is stale. Not resolved.'",
+          "severity": "major"
+        },
+        {
+          "code": "DQ-UNDOCUMENTED-SCHEMA",
+          "evidence": "Three columns with one-line descriptions only; no formats, units, allowed values or event geography; event_name is free text with unknown population rate; no wiki page links to the entry (wiki_backlinks empty).",
+          "severity": "major"
+        }
+      ],
+      "conditions": [
+        "Reconcile the row count with the date span and confirm whether there are gaps in the calendar, or whether the metadata is stale.",
+        "Document the event_name format, population and geography; confirm whether is_open was recorded for 2024-02-05 to 2024-03-10.",
+        "Only then consider re-submitting for N5, which is a should need."
+      ],
+      "rationale": "Calibration rule 4: structured metadata contradicts itself (row count vs daily coverage), so the metadata cannot be trusted and the source is rejected. The schema is also undocumented beyond one-line descriptions and the table was not sampled. The is_open flag and event_name are the only route to N5, and no other candidate covers N5, so N5 is unmet until this is resolved.",
+      "who_can_resolve": [
+        "Store Operations (row count reconciliation, data gaps, event_name documentation)"
+      ]
+    }
+  ],
+  "overall_verdict": "not_feasible",
+  "overall_rationale": "The must need N2 (mapping of product codes before and after the 2024 code change) is unmet: the only internal candidates either hold no pre-2024 codes (sales.products) or have no mapping table (wiki product_codes_2024). Must needs N1 (sales, met with conditions: access approval, 2024 till gap, code bridge) and N3 (Open-Meteo temperature, met with conditions: location, timezone, licence) are achievable with conditions. N4 holiday calendar is met with conditions. N5 is unmet because the only candidate was rejected for metadata contradiction. Because a must need is unmet, the overall verdict is not_feasible until a historical product code mapping is found; the other needs can proceed in parallel.",
+  "need_coverage": [
+    {
+      "need_id": "N1",
+      "status": "met_with_conditions",
+      "best_sources": [
+        "internal.sales.daily_by_product"
+      ],
+      "gap": "Access requires approval from Retail Operations, and the 2024-02-05 to 2024-03-10 till gap and zero-day convention must be handled before use."
+    },
+    {
+      "need_id": "N2",
+      "status": "unmet",
+      "best_sources": [],
+      "gap": "No source provides a mapping between pre- and post-2024-04-01 product codes; the product list holds only current codes and name matching is not unique."
+    },
+    {
+      "need_id": "N3",
+      "status": "met_with_conditions",
+      "best_sources": [
+        "api.open_meteo_archive"
+      ],
+      "gap": "Shop town is unconfirmed (Milan-area probe coordinates), timezone must be set to Europe/Rome, and production use needs Legal sign-off on mixed upstream licences."
+    },
+    {
+      "need_id": "N4",
+      "status": "met_with_conditions",
+      "best_sources": [
+        "api.nager_public_holidays"
+      ],
+      "gap": "Data-specific licence and commercial use unconfirmed, 2025 not probed, full list not checked against the official calendar, and regional or patron-saint holidays are not covered."
+    },
+    {
+      "need_id": "N5",
+      "status": "unmet",
+      "best_sources": [],
+      "gap": "The only candidate (internal.store.calendar) is rejected for a row-count vs coverage metadata contradiction and undocumented event_name; it has not been sampled."
+    }
+  ]
+}

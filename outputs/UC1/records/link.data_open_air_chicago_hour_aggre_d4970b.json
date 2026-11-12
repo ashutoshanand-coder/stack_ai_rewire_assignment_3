@@ -1,0 +1,77 @@
+{
+  "source_id": "link.data_open_air_chicago_hour_aggre_d4970b",
+  "kind": "dataset_link",
+  "title": "Open Air Chicago hourly aggregations (catalog.data.gov landing page, not reached)",
+  "summary": "Candidate link to a data.gov catalog record titled \"Open Air Chicago hour aggregations\", described in the candidate input as hourly air-quality sensor data from a US city (Chicago). The landing page could not be inspected because its host is not on the project's allowlist, so the dataset's contents, period, licence and owner are all unverified. The source does not cover Italy, the stated geography of use case UC1.",
+  "schema": {
+    "documented": "none",
+    "fields": [],
+    "notes": "No schema was read. The landing page was not reachable."
+  },
+  "temporal": {
+    "start": null,
+    "end": null,
+    "grain": "unknown",
+    "metadata_last_updated": null,
+    "open_ended": null,
+    "refresh_cadence": null
+  },
+  "spatial": {
+    "coverage": [
+      "US"
+    ],
+    "code_system": null,
+    "notes": "Candidate description says a US city (Chicago). Use case geography is IT (Valdena, northern Italy). Coverage does not match the primary geography."
+  },
+  "ownership": {
+    "owner": null,
+    "publisher": null,
+    "steward": null
+  },
+  "licence": {
+    "name": null,
+    "evidence": "No licence statement was read: the landing page at catalog.data.gov is blocked by the allowlist (DOMAIN_NOT_ALLOWLISTED).",
+    "commercial_use": "unknown",
+    "agreement_status": null,
+    "attribution_text": null,
+    "mixed_sources": null,
+    "url": null
+  },
+  "access": {
+    "method": "file_download",
+    "auth_required": null,
+    "reachable": false,
+    "request_process": "Host catalog.data.gov is not on config/allowlist.json. Approval of that host by the project's allowlist owner would be needed before the record can be inspected. No other route was tried.",
+    "approx_size_bytes": null,
+    "classification": null
+  },
+  "declared_metadata": {},
+  "documentation_excerpts": [],
+  "quality_notes": [
+    "inspect_dataset_link on https://catalog.data.gov/dataset/open-air-chicago-hour-aggregations returned DOMAIN_NOT_ALLOWLISTED. The source is recorded as unreachable and was not sampled.",
+    "Geography mismatch: the candidate describes a US city (Chicago). UC1 requires IT (northern Italy). Even if reachable, the data would not match the stated location, and the Chicago-based traffic and clinic context would not transfer.",
+    "The candidate's suspected_issues list is empty and it gives no period, so the prototype window (2004-03-10 to 2005-04-04) cannot be checked against it.",
+    "Candidate was found via human input for hourly data. It does not appear to meet need N2 (traffic), N4 (clinic visits) or the Italian geography."
+  ],
+  "provenance": [
+    {
+      "claim": "The data.gov landing page host catalog.data.gov is refused by the allowlist and the source is unreachable.",
+      "evidence": "inspect_dataset_link url=https://catalog.data.gov/dataset/open-air-chicago-hour-aggregations returned DOMAIN_NOT_ALLOWLISTED"
+    },
+    {
+      "claim": "The candidate describes hourly air-quality sensor data from a US city and gives no period, licence or owner.",
+      "evidence": "candidate record link.data_open_air_chicago_hour_aggre_d4970b (why_relevant, canonical_ref, suspected_issues empty)"
+    },
+    {
+      "claim": "The use case requires Italian geography (IT primary, no secondary), with needs N1 to N6 and windows prototype 2004-03-10 to 2005-04-04 and production 2024-01-01 to 2025-12-31.",
+      "evidence": "use_case_spec UC1 geography and windows"
+    }
+  ],
+  "unknowns": [
+    "Dataset contents, variables, pollutants, and sensor locations (the landing page was not reachable).",
+    "Temporal coverage and whether any part overlaps the prototype window (2004-03-10 to 2005-04-04).",
+    "Licence, publisher, owner, steward and refresh cadence.",
+    "Whether any Italian data exists in the record (none is indicated).",
+    "Whether the data.gov host would be approved for use; no approval request has been made."
+  ]
+}

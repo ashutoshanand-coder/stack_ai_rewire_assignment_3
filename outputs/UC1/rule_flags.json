@@ -1,0 +1,84 @@
+{
+  "flags": {
+    "api.open_meteo_archive": [
+      {
+        "code": "LIC-ATTRIBUTION",
+        "evidence": "Licence 'CC BY 4.0 (Open-Meteo API data, as stated by provider); upstream reanalysis licence for C3S data not confirmed' requires attribution",
+        "raised_by": "rule:rule_licence"
+      },
+      {
+        "code": "LIC-MIXED",
+        "evidence": "Record states that parts come from upstream providers with different terms",
+        "raised_by": "rule:rule_licence"
+      }
+    ],
+    "internal.airq.station_readings": [
+      {
+        "code": "ACC-RESTRICTED",
+        "evidence": "auth_required=True, classification=internal, process='Request to the Environment Monitoring Unit (catalog access.request_process). Location azure://valdena-health/env/station_readings. Not tested: no connection attempted, access request not yet made.'",
+        "raised_by": "rule:rule_access"
+      }
+    ],
+    "internal.clinic.resp_visits_daily": [
+      {
+        "code": "ACC-RESTRICTED",
+        "evidence": "auth_required=True, classification=internal, process='Request to Clinical Analytics'",
+        "raised_by": "rule:rule_access"
+      }
+    ],
+    "internal.traffic.hourly_counts": [
+      {
+        "code": "ACC-RESTRICTED",
+        "evidence": "auth_required=True, classification=internal, process='Request to the Mobility Office'",
+        "raised_by": "rule:rule_access"
+      }
+    ],
+    "link.data_open_air_chicago_hour_aggre_d4970b": [
+      {
+        "code": "LIC-UNKNOWN",
+        "evidence": "No licence established. Evidence field: 'No licence statement was read: the landing page at catalog.data.gov is blocked by the allowlist (DOMAIN_NOT_ALLOWLISTED).'",
+        "raised_by": "rule:rule_licence"
+      },
+      {
+        "code": "ACC-UNREACHABLE",
+        "evidence": "Record states the source could not be reached or restored",
+        "raised_by": "rule:rule_access"
+      }
+    ],
+    "link.europa_sdg_11_52_099aa6": [
+      {
+        "code": "LIC-UNKNOWN",
+        "evidence": "No licence established. Evidence field: 'No licence statement found. inspect_dataset_link returned no licence evidence for this link. The Eurostat copyright page (https://ec.europa.eu/eurostat/about/policies/copyright) returned an EU Login redirect page with no licence text, so the probe did not establish terms. The register has no Eurostat entry (list_external_register).'",
+        "raised_by": "rule:rule_licence"
+      },
+      {
+        "code": "COV-PARTIAL-WINDOW",
+        "evidence": "Data [2005-01-01, 2023-12-31] only partially covers 'prototype' (fraction 0.24 < 0.95).",
+        "raised_by": "rule:rule_temporal_coverage"
+      }
+    ],
+    "link.uci_360": [
+      {
+        "code": "LIC-ATTRIBUTION",
+        "evidence": "Licence 'CC BY 4.0 (as stated in the UCI page text) - conflicts with dataset notes restricting use to research' requires attribution",
+        "raised_by": "rule:rule_licence"
+      },
+      {
+        "code": "FRS-STALE",
+        "evidence": "Data ends on 2005-02-28, which is more than 5 years before 2026-10-15.",
+        "raised_by": "rule:rule_temporal_coverage"
+      },
+      {
+        "code": "COV-PARTIAL-WINDOW",
+        "evidence": "Data [2004-03-10, 2005-02-28] only partially covers 'prototype' (fraction 0.91 < 0.95).",
+        "raised_by": "rule:rule_temporal_coverage"
+      },
+      {
+        "code": "DQ-METADATA-CONTRADICTION",
+        "evidence": "Contradiction: says no missing values, but docs mention them.",
+        "raised_by": "rule:rule_metadata_contradiction"
+      }
+    ]
+  },
+  "warnings": []
+}

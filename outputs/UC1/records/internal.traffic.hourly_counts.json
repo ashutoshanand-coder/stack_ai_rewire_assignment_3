@@ -1,0 +1,119 @@
+{
+  "source_id": "internal.traffic.hourly_counts",
+  "kind": "internal",
+  "title": "Road traffic counts (hourly) - counters near monitoring stations",
+  "summary": "Hourly vehicle counts per road counter (counter_id, ts_local, vehicles), owned by the Mobility Office and described in the catalog as counters located near the city's monitoring stations. Catalog lists about 15 million rows and temporal coverage from 2021-01-01 with no end date. A wiki page documents that the counters were replaced on 2024-03-18 and that counting changed from per-direction to both-directions-combined, which the catalog does not mention. No counter-to-station mapping was found, so the link to air-quality readings is not established.",
+  "schema": {
+    "documented": "structured",
+    "field_count": 3,
+    "fields": [
+      {
+        "name": "counter_id",
+        "type": "string",
+        "description": "Road counter code",
+        "pii": false
+      },
+      {
+        "name": "ts_local",
+        "type": "timestamp",
+        "description": "Hour start, local time",
+        "pii": false,
+        "unit": "local time (zone not stated)"
+      },
+      {
+        "name": "vehicles",
+        "type": "integer",
+        "description": "Vehicles counted in the hour",
+        "pii": false,
+        "unit": "vehicles per hour"
+      }
+    ],
+    "notes": "Catalog columns only. No station, location, distance, direction or vehicle-class field is documented. Direction was recorded before 2024-03-18 per wiki counter_replacement_2024 but is not a column in the catalog."
+  },
+  "temporal": {
+    "start": "2021-01-01",
+    "end": null,
+    "grain": "hourly",
+    "metadata_last_updated": "2026-10-14",
+    "open_ended": true,
+    "refresh_cadence": "hourly (catalog refresh_cadence field)"
+  },
+  "spatial": {
+    "coverage": [
+      "IT"
+    ],
+    "code_system": "counter_id (free-text road counter code); no geography field",
+    "notes": "Catalog says counters are near monitoring stations; no mapping from counter_id to station or coordinates is documented. Area of the counters is not stated in the catalog entry beyond the client's city context."
+  },
+  "ownership": {
+    "owner": "Mobility Office",
+    "publisher": null,
+    "steward": "named steward in catalog entry (not recorded here)"
+  },
+  "licence": {
+    "name": "internal",
+    "agreement_status": null,
+    "attribution_text": null,
+    "commercial_use": "not_applicable",
+    "evidence": "catalog entry internal.traffic.hourly_counts: classification 'internal', contains_pii false",
+    "mixed_sources": false,
+    "url": null
+  },
+  "access": {
+    "method": "warehouse_sql",
+    "auth_required": true,
+    "reachable": null,
+    "classification": "internal",
+    "request_process": "Request to the Mobility Office",
+    "approx_size_bytes": null
+  },
+  "declared_metadata": {
+    "status": "active",
+    "classification": "internal",
+    "contains_pii": false,
+    "grain": "hourly",
+    "refresh_cadence": "hourly",
+    "last_refreshed": "2026-10-12",
+    "row_count_approx": 15000000
+  },
+  "documentation_excerpts": [
+    "Vehicles counted per hour by road counters near the monitoring stations. (catalog traffic.hourly_counts, description)",
+    "On 2024-03-18 the road counters were replaced. Before that date, counts were recorded per direction. From 2024-03-18, counts are both directions combined. Do not compare counts across the change without adjusting for it. The catalog entry for traffic.hourly_counts has no note about this. (wiki counter_replacement_2024, last_edited 2024-04-02)",
+    "Station VR-03 (Via Roma) was switched off on 2024-06-30 ... The other stations report continuously from 2023-01-01. (wiki station_network, last_edited 2024-07-01; relevant to station linkage, not to counters)"
+  ],
+  "quality_notes": [
+    "Catalog vs wiki disagreement: the catalog entry has no note on the 2024-03-18 counter replacement and direction change; wiki counter_replacement_2024 (2024-04-02) says the catalog has no note. Catalog export 2026-10-14 still has no note.",
+    "Break in series: counts before 2024-03-18 are per direction and after are both directions combined. Naive comparison across the break is invalid; an adjustment or a split at that date is needed. The adjustment factor is not documented.",
+    "Direction is not a column in the catalog, so the pre-2024 per-direction counts cannot be identified from the documented schema.",
+    "No counter-to-station mapping, coordinates or distance is documented. The claim 'near monitoring stations' rests only on the catalog description. Proximity to the stations cannot be verified from metadata.",
+    "ts_local is local time with no documented time zone or daylight-saving handling. Autumn DST repeats hours and spring DST skips them; alignment with UTC air-quality data (airq.station_readings ts_utc) needs an explicit conversion rule.",
+    "Vehicle class definition (all vehicles vs. light/heavy) is not documented, and the unit is stated only as 'vehicles'.",
+    "Catalog coverage starts 2021-01-01, which is earlier than the production window; the actual first date with data was not verified (no sample possible).",
+    "Not tested: no access probe was made. The source is warehouse_sql behind a request to the Mobility Office, so reachability and access approval are unknown."
+  ],
+  "provenance": [
+    {
+      "claim": "Catalog fields: description, owner (Mobility Office), temporal_coverage 2021-01-01 to open, refresh hourly, last_refreshed 2026-10-12, row_count_approx 15,000,000, three columns, access warehouse_sql with request to Mobility Office",
+      "evidence": "get_catalog_entry internal.traffic.hourly_counts"
+    },
+    {
+      "claim": "Counters replaced 2024-03-18; per-direction before, both directions combined after; catalog has no note",
+      "evidence": "read_wiki_page counter_replacement_2024 (last_edited 2024-04-02)"
+    },
+    {
+      "claim": "No counter-to-station mapping is documented; station network page covers only station VR-03 switch-off and reporting from 2023-01-01",
+      "evidence": "search_internal_catalog 'road counter locations mapping to air quality monitoring stations'; read_wiki_page station_network (last_edited 2024-07-01)"
+    }
+  ],
+  "unknowns": [
+    "Whether counters are actually near monitoring stations, and the distance or station mapping",
+    "Time zone convention and DST handling of ts_local",
+    "Vehicle class definition and whether counts are all vehicles",
+    "Adjustment factor for the 2024-03-18 change",
+    "Actual first and last dates with data (catalog start 2021-01-01 not verified)",
+    "Data completeness, missing hours, and counter outages",
+    "Whether the Mobility Office approves access and whether the warehouse is reachable",
+    "Whether any counter was itself changed or removed after 2024-03-18 beyond the replacement event",
+    "Refresh cadence actually achieved (catalog says hourly; last_refreshed 2026-10-12)"
+  ]
+}

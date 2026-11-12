@@ -1,0 +1,110 @@
+{
+  "candidates": [
+    {
+      "source_id": "internal.sales.daily_by_product",
+      "kind": "internal",
+      "title": "Daily sales by product (till system)",
+      "need_ids": [
+        "N1",
+        "N2"
+      ],
+      "target_windows": [
+        "history",
+        "recent"
+      ],
+      "why_relevant": "Only internal source of daily units and revenue per product code; catalog grain is daily, temporal coverage starts 2022-01-01 with no end date, refreshed daily (last 2026-10-14). Covers both windows on paper. Approx 310000 rows per catalog.",
+      "found_via": "search 'daily sales ice cream by product' and 'gelato sales daily export'; get_catalog_entry; wiki backlink till_migration_2024",
+      "suspected_issues": [
+        "Product codes changed from 2024-04-01; codes ending in 'L' replaced (wiki product_codes_2024, last edited 2024-04-02)",
+        "No mapping table between old and new codes exists (wiki product_codes_2024)",
+        "Till system replaced 2024-02-05 to 2024-03-10: no rows for those days, must be treated as missing not zero (wiki till_migration_2024, last edited 2024-03-12)",
+        "Zero-sales days may be absent rather than zero; not documented in catalog",
+        "Till-day cut-off timezone and refund/void handling not documented in catalog",
+        "Classification confidential; access via request to Retail Operations"
+      ],
+      "location": "azure://valdena-gelato/sales/daily_by_product"
+    },
+    {
+      "source_id": "internal.sales.products",
+      "kind": "internal",
+      "title": "Product list (current codes)",
+      "need_ids": [
+        "N2"
+      ],
+      "target_windows": [
+        "history"
+      ],
+      "why_relevant": "Product master with names and categories (approx 64 rows); the only internal product reference, and the name field is the only available bridge for matching old codes to new ones.",
+      "found_via": "search 'product code mapping 2024 change'; get_catalog_entry; wiki backlink product_codes_2024",
+      "suspected_issues": [
+        "Lists only current codes, so pre-2024 codes are absent (catalog description; wiki product_codes_2024)",
+        "Last refreshed 2025-03-31 despite refresh 'on change'",
+        "Product names not unique per wiki, so name matching is unreliable",
+        "Does not satisfy N2 on its own; no mapping table exists"
+      ],
+      "location": "azure://valdena-gelato/sales/products"
+    },
+    {
+      "source_id": "internal.store.calendar",
+      "kind": "internal",
+      "title": "Shop calendar (opening days, closures, local events)",
+      "need_ids": [
+        "N5"
+      ],
+      "target_windows": [
+        "history",
+        "recent"
+      ],
+      "why_relevant": "Only internal record of daily is_open status and event_name, which is what N5 asks for; covers 2022 onward per catalog (approx 1500 rows).",
+      "found_via": "search 'temperature daily shop location' and 'shop opening hours closed days log'; get_catalog_entry",
+      "suspected_issues": [
+        "Refreshed weekly; no wiki page documents it, so closure history and opening-hour changes are not confirmed",
+        "event_name is free text with no publisher, dates or geography stated",
+        "Catalog does not say how many event_name values are populated",
+        "Closed days must not be read as zero demand"
+      ],
+      "location": "azure://valdena-gelato/store/calendar"
+    },
+    {
+      "source_id": "api.open_meteo_archive",
+      "kind": "public_api",
+      "title": "Open-Meteo Historical Weather API (reanalysis)",
+      "need_ids": [
+        "N3"
+      ],
+      "target_windows": [
+        "history",
+        "recent"
+      ],
+      "why_relevant": "Register source for daily max temperature; agreement not required (open data), approved for prototyping and production. Covers 2023-06-01 to 2026-03-31 at daily grain if requested.",
+      "found_via": "list_external_register",
+      "suspected_issues": [
+        "Register default_query coordinates (38.72, -9.14) are Lisbon, not Italy; the shop town must be chosen and coordinates set as an assumption in decisions.md",
+        "Register default timezone is UTC; daily max must be requested in Europe/Rome or the day boundary must be justified",
+        "Reanalysis is modelled, not station observations; disclose to owner",
+        "Shop town not named in any source"
+      ],
+      "location": "https://archive-api.open-meteo.com/v1/archive; terms https://open-meteo.com/en/licence"
+    },
+    {
+      "source_id": "api.nager_public_holidays",
+      "kind": "public_api",
+      "title": "Nager.Date public holidays API",
+      "need_ids": [
+        "N4"
+      ],
+      "target_windows": [
+        "history",
+        "recent"
+      ],
+      "why_relevant": "Register source for Italian public holidays by year (country IT, years 2023 to 2026 needed); open-data, approved for prototyping and production.",
+      "found_via": "list_external_register",
+      "suspected_issues": [
+        "Regional and local (patron-saint) holidays for the shop town are not expected from a national API; needs a separate source or is flagged as missing",
+        "Not yet profiled; whether IT list matches the official national list is unverified"
+      ],
+      "location": "https://date.nager.at/api/v3/PublicHolidays/{year}/IT; terms https://github.com/nager/Nager.Date"
+    }
+  ],
+  "links": []
+}

@@ -1,0 +1,346 @@
+{
+ "agent": "profiler__internal.sales.products",
+ "system": "# Operating rules (all discovery agents)\n\nYou are one agent in a data-discovery system. The goal is to locate, catalog and assess the feasibility of data sources for a business problem **before any pipeline is built**.\n\n- **Metadata first, then a small sample, never the whole dataset.** Work from catalog entries, wiki pages, API metadata, landing pages, descriptors and terms pages. You may read a capped sample of a data file with `sample_data_file` to check structure and quality, but never try to download a whole dataset. Do not copy personal data (names, emails, addresses, ids) into your output.\n- **Provenance.** Every claim you make about a source must be traceable to a tool call (tool name and argument), a URL, a catalog field or a wiki page id.\n- **Unknown stays unknown.** If no source states a licence, owner, refresh cadence, consent or coverage date, record null or \"unknown\" and say so. Never infer one from what is typical.\n- **Guardrails are findings.** A refused host (DOMAIN_NOT_ALLOWLISTED), a timeout, a 401/403, an expired agreement or a restricted table is evidence to record. Do not look for another route to the same data.\n- **Documentation beats catalog metadata when it is more specific or more recent.** When they disagree, record both, with dates.\n- **Be economical.** Use the fewest tool calls that answer the question, and run independent calls in parallel. Stop when you have enough evidence, and finish by calling your submit tool.\n\n\n# Role: Profiler\n\nYou profile **one** candidate source and return a **catalog record**: an auto-generated summary of schema, freshness, ownership, licence, access and documented quality issues, with provenance for every claim.\n\nWhat to gather, by kind:\n- **internal**: `get_catalog_entry` (all fields), then every wiki backlink and related doc with `read_wiki_page`. Record catalog vs wiki disagreements in `quality_notes`, quoting both sides with dates. Internal sources have `licence.name = \"internal\"` and `commercial_use = \"not_applicable\"`.\n- **public_api**: `list_external_register` for the endpoint, then one or two small `call_public_api` probes to check that it responds and which period it covers (probe both ends of the needed windows if coverage is in doubt). Read the provider's terms with `probe_url` on `terms_url` and record the licence and its exact source.\n- **vendor_feed**: read the register entry. Do not try to call it. Record the agreement status and detail in `licence.agreement_status`, and set `access.reachable` to false when credentials are revoked or not issued.\n- **dataset_link** (any URL a human supplied; the link can point anywhere):\n  1. `inspect_dataset_link` on the link. It tells you the link type and gives metadata, licence evidence, files and next steps.\n  2. By link type:\n     - `uci_dataset_page`: read `metadata` (declared flags, notes, variables). If `data_url` exists, `sample_data_file` on it. Otherwise the data is only in an archive: describe the schema from the metadata and say the sample was not possible.\n     - `landing_page` (portals such as Kaggle, Zenodo, data.gov, CKAN or Hugging Face): read `jsonld_datasets` first (licence, dates, coverage, distribution), then `meta_description` and `text_start`. Pick the most specific data file from the distribution or `data_links` and `sample_data_file` it, if its host is allowlisted. If downloads need a login or subscription, set `access.auth_required = true`.\n     - `frictionless_datapackage`: `summarize_datapackage` with a `field_filter` for the use case's geography (e.g. the country code prefix the use case needs). Never sample the large CSVs it lists.\n     - `json_stat`: read the summary (dimensions, time, geo codes, warnings).\n     - `data_file`: the sample profile is already in the result. Find documentation for the file (repository README, parent page) if you can, using `probe_url`.\n     - `json_api`: use the shape and dates found. One more call at most.\n     - `login_wall` / `unreachable` / a refused host: record `access.reachable = false` (or `auth_required = true` for a login wall), say which host or credential would be needed, and stop.\n  3. Licence: use the licence from `inspect_dataset_link` and say where it was found (`found_in`). If none was found, look once on the provider's terms page with `probe_url`. Otherwise record null. Never assume a portal's usual licence.\n  4. Copy `canonical_ref` from `inspect_dataset_link` into the record.\n  5. Put what the **sample** showed in `sample_findings`, naming the column: sentinel values, negative quantities, zero shares, odd value sets (country spellings), date formats, personal-looking columns. A sample's date range is the range of the first rows only: take `temporal.start/end` from the documentation, not from the sample, unless the sample is the whole file.\n  6. Decide what the data **is**: entity, grain, period, geography, population. The Risk Assessor judges fit from this.\n\nField rules:\n- `temporal.start` / `temporal.end` are ISO dates (YYYY-MM-DD) of the **data period**. Use `end = null` only for sources that are still updating. `grain` is one of the schema's values.\n- `access.approx_size_bytes`: the largest file or table size you found stated (descriptor bytes, content-length, row counts x width if stated), else null.\n- `access.reachable = false` if the link itself (or its metadata) could not be reached, the host was refused, or the store cannot be restored. A data file that timed out or is an archive that cannot be sampled does NOT make the source unreachable when its metadata was read; note it in `quality_notes`.\n- `licence.mixed_sources = true` when different fields or files come from upstream providers with different terms.\n- `spatial.code_system`: how places are identified (ISO2, ISO3, free-text country names, Eurostat codes, ...). This decides whether joins will work.\n- `schema.documented`: \"structured\" when fields come with names and types, \"free_text_only\" when they are only described in prose, \"none\" otherwise.\n- At least three `provenance` entries. Put everything you could not establish in `unknowns`.\n",
+ "messages": [
+  {
+   "role": "user",
+   "content": "<use_case_spec>\n{\n \"id\": \"UC2\",\n \"title\": \"Ice-cream sales: do hot days and public holidays raise our sales?\",\n \"client\": \"Valdena Gelato Shop (fictional, northern Italy)\",\n \"as_of\": \"2026-10-15\",\n \"geography\": {\n  \"primary\": [\n   \"IT\"\n  ],\n  \"secondary\": []\n },\n \"windows\": [\n  {\n   \"id\": \"history\",\n   \"start\": \"2023-06-01\",\n   \"end\": \"2025-05-31\",\n   \"purpose\": \"Two summers of daily sales, to see how weather and holidays affect them.\"\n  },\n  {\n   \"id\": \"recent\",\n   \"start\": \"2025-06-01\",\n   \"end\": \"2026-03-31\",\n   \"purpose\": \"The most recent months, to check that the pattern still holds.\"\n  }\n ],\n \"needs\": [\n  {\n   \"id\": \"N1\",\n   \"name\": \"Daily ice-cream sales by product\",\n   \"priority\": \"must\",\n   \"min_grain\": \"daily\",\n   \"windows\": [\n    \"history\",\n    \"recent\"\n   ]\n  },\n  {\n   \"id\": \"N2\",\n   \"name\": \"Mapping of product codes before and after the 2024 code change\",\n   \"priority\": \"must\",\n   \"min_grain\": \"static\",\n   \"windows\": [\n    \"history\"\n   ]\n  },\n  {\n   \"id\": \"N3\",\n   \"name\": \"Daily maximum temperature\",\n   \"priority\": \"must\",\n   \"min_grain\": \"daily\",\n   \"windows\": [\n    \"history\",\n    \"recent\"\n   ]\n  },\n  {\n   \"id\": \"N4\",\n   \"name\": \"Public holidays in Italy\",\n   \"priority\": \"should\",\n   \"min_grain\": \"daily\",\n   \"windows\": [\n    \"history\",\n    \"recent\"\n   ]\n  },\n  {\n   \"id\": \"N5\",\n   \"name\": \"Shop opening days and local events\",\n   \"priority\": \"should\",\n   \"min_grain\": \"daily\",\n   \"windows\": [\n    \"history\",\n    \"recent\"\n   ]\n  }\n ]\n}\n</use_case_spec>\n\n<candidate>\n{\n \"source_id\": \"internal.sales.products\",\n \"kind\": \"internal\",\n \"title\": \"Product list (current codes)\",\n \"need_ids\": [\n  \"N2\"\n ],\n \"target_windows\": [\n  \"history\"\n ],\n \"why_relevant\": \"Product master with names and categories (approx 64 rows); the only internal product reference, and the name field is the only available bridge for matching old codes to new ones.\",\n \"found_via\": \"search 'product code mapping 2024 change'; get_catalog_entry; wiki backlink product_codes_2024\",\n \"suspected_issues\": [\n  \"Lists only current codes, so pre-2024 codes are absent (catalog description; wiki product_codes_2024)\",\n  \"Last refreshed 2025-03-31 despite refresh 'on change'\",\n  \"Product names not unique per wiki, so name matching is unreliable\",\n  \"Does not satisfy N2 on its own; no mapping table exists\"\n ],\n \"location\": \"azure://valdena-gelato/sales/products\"\n}\n</candidate>\n\nProfile this one source and call submit_catalog_record."
+  },
+  {
+   "role": "assistant",
+   "content": [
+    {
+     "signature": "CAQSrwQKEggTEAEYAjgBQgh0aGlua2luZxIM7RAgVisgCYH7u7McGgxfSxR9q9USPIaM6jwiMEnZ09ysFR9uOxhGGF1iAazOtPgNI2ponOwG8gR1ffYmb2ij4uBiCvddU2Qg1JMwsyrKA0n1dZ+jklhzSO3nVBgT2zxf0n9VgXg2pTCtAZxU1ME5t0aUkht6piY2q84I/CZEucJU8VzimVXRDz5sOB/r+y3v2PJbFXvQ/Mspl03+r9Jn0jYDZuDowODK3wckkKP+9qFC8V83BdXAm3GwGnklywk5SI57mB+j0zjalkegnA0vUAG7Q05sHVIuyY9TSDyGV7rhrAstjhGDsDZpO8IRI9LoeXRWSFOmV+KFc4yRmK/YF21US6uHv1m8QdsNMUisTSIjSPM+xUTN0CqJImH9moxX0m9Bs8DnsdANDqB8QdLpt06czE7YJ8iMzjlmEmgR4iO1f5Rtg0ULPSqcpeJKkb96t2Szj3CapRT2SpxU/Pd+jcxOYR0jiNFdgIrfTZeji3QFFMeMthil9CHVpdrWEtc/pUhBvMLx0ZrgWROTmxjYDBn7uUD/fePNiRyCmIpFoNonG36fS0MBtsD/JNdlH72qGjII9OqiFqSqSVqWcToECoSrFiy3RlSFjpBYMWIB23td2xCkIw05wbStaEKml7spmyreOOotgy/8plMzKCaaoRr9szLqvuV7ZZrciDAi5DQcsJ6YXnatBQX2zMzfiUI/mDV2j8t6KqtXGAE=",
+     "thinking": "",
+     "type": "thinking"
+    },
+    {
+     "id": "toolu_bdrk_013NV6v9EujFC4LZCDN5zSGb",
+     "input": {
+      "entry_id": "internal.sales.products"
+     },
+     "name": "get_catalog_entry",
+     "type": "tool_use"
+    }
+   ]
+  },
+  {
+   "role": "user",
+   "content": [
+    {
+     "type": "tool_result",
+     "tool_use_id": "toolu_bdrk_013NV6v9EujFC4LZCDN5zSGb",
+     "content": "{\"source_id\": \"internal.sales.products\", \"entry\": {\"id\": \"sales.products\", \"display_name\": \"Product list\", \"description\": \"Current product codes, names and categories.\", \"domain\": \"Retail\", \"owner\": \"Retail Operations\", \"steward\": \"Marco Bianchi\", \"status\": \"active\", \"classification\": \"internal\", \"contains_pii\": false, \"grain\": \"static\", \"temporal_coverage\": {\"start\": null, \"end\": null}, \"refresh_cadence\": \"on change\", \"last_refreshed\": \"2025-03-31\", \"location\": \"azure://valdena-gelato/sales/products\", \"access\": {\"method\": \"warehouse_sql\", \"request_process\": \"Open to analytics roles\"}, \"row_count_approx\": 64, \"columns\": [{\"name\": \"product_code\", \"type\": \"string\", \"description\": \"Current product code\", \"pii\": false}, {\"name\": \"product_name\", \"type\": \"string\", \"description\": \"Product name\", \"pii\": false}, {\"name\": \"category\", \"type\": \"string\", \"description\": \"Product category\", \"pii\": false}]}, \"wiki_backlinks\": [\"product_codes_2024\"], \"catalog_exported_at\": \"2026-10-14T06:00:00Z\"}"
+    }
+   ]
+  },
+  {
+   "role": "assistant",
+   "content": [
+    {
+     "id": "toolu_bdrk_01XgFGv4pSmn83BzhHn5qrbA",
+     "input": {
+      "page_id": "product_codes_2024"
+     },
+     "name": "read_wiki_page",
+     "type": "tool_use"
+    }
+   ]
+  },
+  {
+   "role": "user",
+   "content": [
+    {
+     "type": "tool_result",
+     "tool_use_id": "toolu_bdrk_01XgFGv4pSmn83BzhHn5qrbA",
+     "content": "{\"page_id\": \"product_codes_2024\", \"title\": \"Product code change (2024)\", \"owner\": \"Retail Operations\", \"last_edited\": \"2024-04-02\", \"body\": \"# Product code change (2024)\\n- From 2024-04-01, product codes changed. Codes ending in \\\"L\\\" were replaced by new codes.\\n- No mapping table exists between the old and new codes.\\n- Old and new codes can only be matched by product name, and some names are not unique.\\n- `sales.products` lists only the current codes.\"}"
+    }
+   ]
+  },
+  {
+   "role": "assistant",
+   "content": [
+    {
+     "signature": "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",
+     "thinking": "",
+     "type": "thinking"
+    },
+    {
+     "id": "toolu_bdrk_01FHRpUEnzdaE3MgutM4fKPh",
+     "input": {
+      "source_id": "internal.sales.products",
+      "kind": "internal",
+      "title": "Product list (current codes), Valdena sales.products",
+      "summary": "Static internal product master of about 64 rows giving the current product_code, product_name and category for the Valdena Gelato shop's products. It holds only codes in force after the 2024-04-01 code change, so it cannot map pre-2024 codes to current ones. The wiki states that no mapping table exists and that old and new codes can only be matched by name, where some names are not unique.",
+      "schema": {
+       "documented": "structured",
+       "field_count": 3,
+       "fields": [
+        {
+         "name": "product_code",
+         "type": "string",
+         "description": "Current product code",
+         "pii": false
+        },
+        {
+         "name": "product_name",
+         "type": "string",
+         "description": "Product name",
+         "pii": false
+        },
+        {
+         "name": "category",
+         "type": "string",
+         "description": "Product category",
+         "pii": false
+        }
+       ],
+       "notes": "Column list from catalog entry only; no sample was read because this is a warehouse_sql source, not a file."
+      },
+      "temporal": {
+       "start": null,
+       "end": null,
+       "grain": "static",
+       "metadata_last_updated": "2025-03-31",
+       "open_ended": null,
+       "refresh_cadence": "on change",
+       "start_note": "temporal_coverage is null in catalog"
+      },
+      "spatial": {
+       "coverage": [
+        "IT"
+       ],
+       "code_system": "free-text product names and internal codes",
+       "notes": "Catalog gives no geography field. Scope is the Valdena shop's own product range, assumed to be Italy-based; not stated in the sources read."
+      },
+      "ownership": {
+       "owner": "Retail Operations",
+       "publisher": null,
+       "steward": "Marco Bianchi"
+      },
+      "licence": {
+       "name": "internal",
+       "evidence": "catalog entry internal.sales.products: classification 'internal'; no separate licence field",
+       "url": null,
+       "commercial_use": "not_applicable",
+       "agreement_status": null,
+       "attribution_text": null,
+       "mixed_sources": false
+      },
+      "access": {
+       "method": "warehouse_sql",
+       "auth_required": null,
+       "reachable": null,
+       "request_process": "Open to analytics roles",
+       "classification": "internal",
+       "approx_size_bytes": null
+      },
+      "declared_metadata": {
+       "status": "active",
+       "contains_pii": false,
+       "classification": "internal",
+       "grain": "static",
+       "row_count_approx": 64,
+       "refresh_cadence": "on change",
+       "last_refreshed": "2025-03-31"
+      },
+      "documentation_excerpts": [
+       "Current product codes, names and categories. (catalog description)",
+       "From 2024-04-01, product codes changed. Codes ending in \"L\" were replaced by new codes. (wiki product_codes_2024, last_edited 2024-04-02)",
+       "No mapping table exists between the old and new codes. (wiki product_codes_2024)",
+       "Old and new codes can only be matched by product name, and some names are not unique. (wiki product_codes_2024)",
+       "`sales.products` lists only the current codes. (wiki product_codes_2024)"
+      ],
+      "quality_notes": [
+       "Does not meet N2 on its own: it lists only current codes, and the wiki (product_codes_2024, 2024-04-02) says no mapping table exists.",
+       "Name matching for old-to-new code bridging is unreliable: wiki says some product names are not unique.",
+       "Freshness: catalog says refresh cadence 'on change' with last_refreshed 2025-03-31. The catalog was exported 2026-10-14, so the table is about 19 months old against the as_of date of 2026-10-15. Any product changes after 2025-03-31 (including ones affecting the 2025-06 to 2026-03 recent window) are not reflected. The candidate's note that the refresh was 'despite' the on-change cadence is not supported: a refresh after the 2024 change is consistent with 'on change'.",
+       "Catalog and wiki agree on the existence of the 2024 change and the absence of a mapping table. The wiki does not give the number of old codes ending in 'L' or confirm the 2024-04-01 date beyond its own text.",
+       "No sample was read, because the source is a warehouse_sql table and not a file. Row count of about 64 is catalog-declared and unverified."
+      ],
+      "provenance": [
+       {
+        "claim": "Catalog describes the source as current product codes, names and categories, static grain, owner Retail Operations, steward Marco Bianchi, classification internal, no PII, about 64 rows, refresh on change, last refreshed 2025-03-31",
+        "evidence": "get_catalog_entry internal.sales.products"
+       },
+       {
+        "claim": "Code change took effect 2024-04-01; no mapping table exists; old and new codes can only be matched by name; some names not unique; the product table lists only current codes",
+        "evidence": "read_wiki_page product_codes_2024 (last_edited 2024-04-02)"
+       },
+       {
+        "claim": "Catalog has no temporal coverage dates for this table",
+        "evidence": "get_catalog_entry internal.sales.products, temporal_coverage start and end null"
+       },
+       {
+        "claim": "Access method is warehouse_sql with request process 'Open to analytics roles'",
+        "evidence": "get_catalog_entry internal.sales.products, access block"
+       }
+      ],
+      "unknowns": [
+       "Whether the table was modified after 2025-03-31 (catalog last_refreshed date is 2025-03-31 and no later change is recorded).",
+       "Number of pre-2024 product codes and how many carry the 'L' suffix; no list of old codes was available.",
+       "How many product names are duplicated and which ones.",
+       "Whether the warehouse table is currently reachable and what access approval is needed beyond the analytics role.",
+       "Geography of the product range beyond the shop being in northern Italy (client context), and the source's own geography field, which does not exist.",
+       "Data period: the table is static and has no temporal coverage dates."
+      ],
+      "location": "azure://valdena-gelato/sales/products",
+      "status": "active"
+     },
+     "name": "submit_catalog_record",
+     "type": "tool_use"
+    }
+   ]
+  },
+  {
+   "role": "user",
+   "content": [
+    {
+     "type": "tool_result",
+     "tool_use_id": "toolu_bdrk_01FHRpUEnzdaE3MgutM4fKPh",
+     "is_error": true,
+     "content": "Submission rejected. Fix these and call it again:\n- temporal: Additional properties are not allowed ('start_note' was unexpected)"
+    }
+   ]
+  },
+  {
+   "role": "assistant",
+   "content": [
+    {
+     "id": "toolu_bdrk_01NuyeJ5ZDjN1E4k9sRJuiVq",
+     "input": {
+      "source_id": "internal.sales.products",
+      "kind": "internal",
+      "title": "Product list (current codes), Valdena sales.products",
+      "summary": "Static internal product master of about 64 rows giving the current product_code, product_name and category for the Valdena Gelato shop's products. It holds only codes in force after the 2024-04-01 code change, so it cannot map pre-2024 codes to current ones. The wiki states that no mapping table exists and that old and new codes can only be matched by name, where some names are not unique.",
+      "schema": {
+       "documented": "structured",
+       "field_count": 3,
+       "fields": [
+        {
+         "name": "product_code",
+         "type": "string",
+         "description": "Current product code",
+         "pii": false
+        },
+        {
+         "name": "product_name",
+         "type": "string",
+         "description": "Product name",
+         "pii": false
+        },
+        {
+         "name": "category",
+         "type": "string",
+         "description": "Product category",
+         "pii": false
+        }
+       ],
+       "notes": "Column list from catalog entry only; no sample was read because this is a warehouse_sql source, not a file."
+      },
+      "temporal": {
+       "start": null,
+       "end": null,
+       "grain": "static",
+       "metadata_last_updated": "2025-03-31",
+       "open_ended": null,
+       "refresh_cadence": "on change"
+      },
+      "spatial": {
+       "coverage": [
+        "IT"
+       ],
+       "code_system": "free-text product names and internal codes",
+       "notes": "Catalog gives no geography field. Scope is the Valdena shop's own product range, assumed to be Italy-based; not stated in the sources read."
+      },
+      "ownership": {
+       "owner": "Retail Operations",
+       "publisher": null,
+       "steward": "Marco Bianchi"
+      },
+      "licence": {
+       "name": "internal",
+       "evidence": "catalog entry internal.sales.products: classification 'internal'; no separate licence field",
+       "url": null,
+       "commercial_use": "not_applicable",
+       "agreement_status": null,
+       "attribution_text": null,
+       "mixed_sources": false
+      },
+      "access": {
+       "method": "warehouse_sql",
+       "auth_required": null,
+       "reachable": null,
+       "request_process": "Open to analytics roles",
+       "classification": "internal",
+       "approx_size_bytes": null
+      },
+      "declared_metadata": {
+       "status": "active",
+       "contains_pii": false,
+       "classification": "internal",
+       "grain": "static",
+       "row_count_approx": 64,
+       "refresh_cadence": "on change",
+       "last_refreshed": "2025-03-31"
+      },
+      "documentation_excerpts": [
+       "Current product codes, names and categories. (catalog description)",
+       "From 2024-04-01, product codes changed. Codes ending in \"L\" were replaced by new codes. (wiki product_codes_2024, last_edited 2024-04-02)",
+       "No mapping table exists between the old and new codes. (wiki product_codes_2024)",
+       "Old and new codes can only be matched by product name, and some names are not unique. (wiki product_codes_2024)",
+       "`sales.products` lists only the current codes. (wiki product_codes_2024)"
+      ],
+      "quality_notes": [
+       "Does not meet N2 on its own: it lists only current codes, and the wiki (product_codes_2024, 2024-04-02) says no mapping table exists.",
+       "Name matching for old-to-new code bridging is unreliable: wiki says some product names are not unique.",
+       "Freshness: catalog says refresh cadence 'on change' with last_refreshed 2025-03-31. The catalog was exported 2026-10-14, so the table is about 19 months old against the as_of date of 2026-10-15. Any product changes after 2025-03-31 (including ones affecting the 2025-06 to 2026-03 recent window) are not reflected. The candidate's note that the refresh was 'despite' the on-change cadence is not supported: a refresh after the 2024 change is consistent with 'on change'.",
+       "Catalog and wiki agree on the existence of the 2024 change and the absence of a mapping table. The wiki does not give the number of old codes ending in 'L' or confirm the 2024-04-01 date beyond its own text.",
+       "No sample was read, because the source is a warehouse_sql table and not a file. Row count of about 64 is catalog-declared and unverified."
+      ],
+      "provenance": [
+       {
+        "claim": "Catalog describes the source as current product codes, names and categories, static grain, owner Retail Operations, steward Marco Bianchi, classification internal, no PII, about 64 rows, refresh on change, last refreshed 2025-03-31",
+        "evidence": "get_catalog_entry internal.sales.products"
+       },
+       {
+        "claim": "Code change took effect 2024-04-01; no mapping table exists; old and new codes can only be matched by name; some names not unique; the product table lists only current codes",
+        "evidence": "read_wiki_page product_codes_2024 (last_edited 2024-04-02)"
+       },
+       {
+        "claim": "Catalog has no temporal coverage dates for this table",
+        "evidence": "get_catalog_entry internal.sales.products, temporal_coverage start and end null"
+       },
+       {
+        "claim": "Access method is warehouse_sql with request process 'Open to analytics roles'",
+        "evidence": "get_catalog_entry internal.sales.products, access block"
+       }
+      ],
+      "unknowns": [
+       "Whether the table was modified after 2025-03-31 (catalog last_refreshed date is 2025-03-31 and no later change is recorded).",
+       "Number of pre-2024 product codes and how many carry the 'L' suffix; no list of old codes was available.",
+       "How many product names are duplicated and which ones.",
+       "Whether the warehouse table is currently reachable and what access approval is needed beyond the analytics role.",
+       "Geography of the product range beyond the shop being in northern Italy (client context), and the source's own geography field, which does not exist.",
+       "Data period: the table is static and has no temporal coverage dates."
+      ],
+      "location": "azure://valdena-gelato/sales/products",
+      "status": "active"
+     },
+     "name": "submit_catalog_record",
+     "type": "tool_use"
+    }
+   ]
+  },
+  {
+   "role": "user",
+   "content": [
+    {
+     "type": "tool_result",
+     "tool_use_id": "toolu_bdrk_01NuyeJ5ZDjN1E4k9sRJuiVq",
+     "content": "accepted"
+    }
+   ]
+  }
+ ]
+}

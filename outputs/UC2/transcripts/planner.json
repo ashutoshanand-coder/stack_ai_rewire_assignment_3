@@ -1,0 +1,205 @@
+{
+ "agent": "planner",
+ "system": "# Operating rules (all discovery agents)\n\nYou are one agent in a data-discovery system. The goal is to locate, catalog and assess the feasibility of data sources for a business problem **before any pipeline is built**.\n\n- **Metadata first, then a small sample, never the whole dataset.** Work from catalog entries, wiki pages, API metadata, landing pages, descriptors and terms pages. You may read a capped sample of a data file with `sample_data_file` to check structure and quality, but never try to download a whole dataset. Do not copy personal data (names, emails, addresses, ids) into your output.\n- **Provenance.** Every claim you make about a source must be traceable to a tool call (tool name and argument), a URL, a catalog field or a wiki page id.\n- **Unknown stays unknown.** If no source states a licence, owner, refresh cadence, consent or coverage date, record null or \"unknown\" and say so. Never infer one from what is typical.\n- **Guardrails are findings.** A refused host (DOMAIN_NOT_ALLOWLISTED), a timeout, a 401/403, an expired agreement or a restricted table is evidence to record. Do not look for another route to the same data.\n- **Documentation beats catalog metadata when it is more specific or more recent.** When they disagree, record both, with dates.\n- **Be economical.** Use the fewest tool calls that answer the question, and run independent calls in parallel. Stop when you have enough evidence, and finish by calling your submit tool.\n\n\n# Role: Planner\n\nYou turn a business brief into a **search plan**: for every need in the use-case spec, where the data probably lives and how to recognise it.\n\nFor each need (all of them, using the ids from the spec):\n- `interpretation`: what the data must look like to satisfy the need (entity, grain, window, geography), in one or two sentences.\n- `internal_queries`: 2–5 plain-language queries for the internal catalog and wiki. Include synonyms and internal jargon (abbreviations, system names, renamed tables), not only the words in the brief.\n- `external_data_hints`: 0–3 short descriptions of an **external dataset a human could find and link** if internal data and the register fall short. Give the kind of publisher or portal (statistics office, open-data portal, research repository, TSO, ...), the grain, period and geography it must have, and the trap to avoid. Use [] when only internal data can serve the need (for example consent). The human sees these hints at the candidate gate.\n- `register_ids`: ids from the external sources register (call `list_external_register`) that could serve the need.\n- `acceptance_criteria`: concrete tests a candidate must pass (window covered, grain at least X, geography, key available, lawful basis, ...).\n- `likely_pitfalls`: what usually goes wrong for this kind of data (renamed or migrated tables, unit changes, consent captured late, superseded copies, code systems that do not join, ...).\n\nAlso give an `objective_summary` (what decision the data supports) and `open_questions` that only a human can answer. Do not search the catalog yourself; that is the Scout's job.\n",
+ "messages": [
+  {
+   "role": "user",
+   "content": "<use_case_spec>\n{\n \"id\": \"UC2\",\n \"title\": \"Ice-cream sales: do hot days and public holidays raise our sales?\",\n \"client\": \"Valdena Gelato Shop (fictional, northern Italy)\",\n \"as_of\": \"2026-10-15\",\n \"geography\": {\n  \"primary\": [\n   \"IT\"\n  ],\n  \"secondary\": []\n },\n \"windows\": [\n  {\n   \"id\": \"history\",\n   \"start\": \"2023-06-01\",\n   \"end\": \"2025-05-31\",\n   \"purpose\": \"Two summers of daily sales, to see how weather and holidays affect them.\"\n  },\n  {\n   \"id\": \"recent\",\n   \"start\": \"2025-06-01\",\n   \"end\": \"2026-03-31\",\n   \"purpose\": \"The most recent months, to check that the pattern still holds.\"\n  }\n ],\n \"needs\": [\n  {\n   \"id\": \"N1\",\n   \"name\": \"Daily ice-cream sales by product\",\n   \"priority\": \"must\",\n   \"min_grain\": \"daily\",\n   \"windows\": [\n    \"history\",\n    \"recent\"\n   ]\n  },\n  {\n   \"id\": \"N2\",\n   \"name\": \"Mapping of product codes before and after the 2024 code change\",\n   \"priority\": \"must\",\n   \"min_grain\": \"static\",\n   \"windows\": [\n    \"history\"\n   ]\n  },\n  {\n   \"id\": \"N3\",\n   \"name\": \"Daily maximum temperature\",\n   \"priority\": \"must\",\n   \"min_grain\": \"daily\",\n   \"windows\": [\n    \"history\",\n    \"recent\"\n   ]\n  },\n  {\n   \"id\": \"N4\",\n   \"name\": \"Public holidays in Italy\",\n   \"priority\": \"should\",\n   \"min_grain\": \"daily\",\n   \"windows\": [\n    \"history\",\n    \"recent\"\n   ]\n  },\n  {\n   \"id\": \"N5\",\n   \"name\": \"Shop opening days and local events\",\n   \"priority\": \"should\",\n   \"min_grain\": \"daily\",\n   \"windows\": [\n    \"history\",\n    \"recent\"\n   ]\n  }\n ]\n}\n</use_case_spec>\n\n<business_brief>\n# UC2: Ice-cream sales, weather and holidays\n\n**Client:** Valdena Gelato Shop (fictional, northern Italy)\n**Requested by:** Shop owner\n**As-of date for this discovery:** 2026-10-15\n\n## Business problem\nThe shop orders ice cream a week ahead. It over-orders on quiet days and runs out on hot days and holidays. The owner wants to know whether hot days and public holidays raise sales enough to plan orders around them.\n\n## Decisions this discovery supports\n1. Is there enough daily sales history to measure the effect of weather and holidays?\n2. Can the product codes be matched across the 2024 code change? If not, which products can be compared?\n3. Which red flags must be resolved before a forecast is built?\n\n## Scope\n- **History window:** 2023-06-01 to 2025-05-31, two summers of daily sales.\n- **Recent window:** 2025-06-01 to 2026-03-31.\n- **Geography:** Italy. No source names the shop's city. Choose a location you can justify, record it as an assumption in `decisions.md`, and set those coordinates in the Open-Meteo call.\n- **Out of scope:** customer-level data. The shop does not record it.\n\n## Needs\nThe canonical list, with IDs, grains and windows, is in `UC2_ice_cream.json`. In short:\n\n| ID | Need | Priority |\n|---|---|---|\n| N1 | Daily ice-cream sales by product | must |\n| N2 | Mapping of product codes before and after the 2024 code change | must |\n| N3 | Daily maximum temperature | must |\n| N4 | Public holidays in Italy | should |\n| N5 | Shop opening days and local events | should |\n\n## Where to look\n- The internal catalog export and the two wiki pages in `internal/UC2_valdena_gelato/`.\n- The register: the weather API and the holiday API are tagged for this use case.\n- This use case has no dataset links. Weather and holidays come from the register APIs.\n\n</business_brief>\n\nProduce the search plan for every need, then call submit_search_plan."
+  },
+  {
+   "role": "assistant",
+   "content": [
+    {
+     "signature": "CAQSzQQKEggTEAEYAjgBQgh0aGlua2luZxIM64A53HqT5V8xUgS9Ggx5TLpGFa+807p20P4iML/6kWQ+K1YMtdMNvG5OdkJ0gVSQMs5S6AzwKEU2M/JWwuvbixs1/AMIle1KDU5KdyroAwTOadM+qUARZ7oeT/eTNMeFEl+xcRIZuqMchCm847tJpRarIIpdw9SGO8hOTKN4j1o6rqFnzPTYHwsDGXNwr/Etm48BG3M2sKHnOxhMzphfDZd3kf8x0IjvhRvY8hsbxxm/Vt6hSiXMYkhQTSaQ3Dw8FifIwLPyuzPIOBRxNpz/6kLinwMp8bbbej7YgyzEFPEMvaC0pUvogTecjVC93Jpjp3ysoHUcqfn3EYQ1WiZq0jDyu45bgnJPEgy+msOrIA2LUzqxOCCM2xza3Kuo8qljj9LLMBQ0qj3wVrkV6MalLtBhVHlHgVYtWCtIflz9v0ySDXO+jOBwYYqJPSRPUxlyqNI1bqLnAlp4MbKf9qQUKu/hzisijMULMiiJtwTK6GeVWNoXkxa7xlJ/4jbX8H1hncVP6l79W0S5jviUJE5Xs631uGvDXZpyUb0He2EaoHheEuRYXuNy7D+D+xkAcF5SIEl2NXss5nqTfoAUQHNeeDX9NciI4Fk3XMgkQ2a43PRek4RZend1i2rdXQVfH5p/ZrGG7vmrT14ojkiIbGwUhZreJHjZOjUrHiN9udXWKcQWqSOMaFK4qfGgyPnu7I35qXshYOjLA2SApjTHAOvVI7n10NvpaXuqHPdM2p41b9e73oqGNxWNGAE=",
+     "thinking": "",
+     "type": "thinking"
+    },
+    {
+     "id": "toolu_bdrk_01E1f5ygEDVif5jeGKWb336v",
+     "input": {},
+     "name": "list_external_register",
+     "type": "tool_use"
+    }
+   ]
+  },
+  {
+   "role": "user",
+   "content": [
+    {
+     "type": "tool_result",
+     "tool_use_id": "toolu_bdrk_01E1f5ygEDVif5jeGKWb336v",
+     "content": "{\"use_case\": \"UC2\", \"sources\": [{\"id\": \"policy.open_data_links\", \"kind\": \"policy\", \"title\": \"Open-data policy for dataset links supplied by analysts\", \"use_cases\": [\"UC1\", \"UC2\"], \"agreement_status\": \"not_required_open_data\", \"approved_purposes\": [\"prototyping\", \"benchmarking\", \"context\"], \"notes\": \"Legal allows publicly available datasets (repositories such as UCI or Zenodo, statistics offices, open-data portals) for prototyping, benchmarking and context, subject to each dataset's own licence as read at its source. Datasets behind a login, with an unknown licence or a non-commercial licence need Legal review before use. Production use of any external dataset needs Legal sign-off.\", \"docs_url\": null, \"terms_url\": null}, {\"id\": \"api.open_meteo_archive\", \"kind\": \"public_api\", \"title\": \"Open-Meteo Historical Weather API (reanalysis)\", \"use_cases\": [\"UC1\", \"UC2\"], \"agreement_status\": \"not_required_open_data\", \"approved_purposes\": [\"prototyping\", \"production\"], \"endpoint\": \"https://archive-api.open-meteo.com/v1/archive\", \"path_params\": [], \"default_query\": {\"latitude\": \"38.72\", \"longitude\": \"-9.14\", \"start_date\": \"2014-01-01\", \"end_date\": \"2014-01-03\", \"hourly\": \"temperature_2m,shortwave_radiation\", \"timezone\": \"UTC\"}, \"param_notes\": \"latitude/longitude decimal degrees; start_date/end_date YYYY-MM-DD; hourly or daily variable lists. Keep probe ranges to a few days.\", \"docs_url\": \"https://open-meteo.com/en/docs/historical-weather-api\", \"terms_url\": \"https://open-meteo.com/en/licence\"}, {\"id\": \"api.nager_public_holidays\", \"kind\": \"public_api\", \"title\": \"Nager.Date public holidays API\", \"use_cases\": [\"UC1\", \"UC2\"], \"agreement_status\": \"not_required_open_data\", \"approved_purposes\": [\"prototyping\", \"production\"], \"endpoint\": \"https://date.nager.at/api/v3/PublicHolidays/{year}/{country}\", \"path_params\": [\"year\", \"country\"], \"default_query\": {}, \"param_notes\": \"country is ISO 3166-1 alpha-2 (PT, GB, FR, ...).\", \"docs_url\": \"https://date.nager.at/Api\", \"terms_url\": \"https://github.com/nager/Nager.Date\"}]}"
+    }
+   ]
+  },
+  {
+   "role": "assistant",
+   "content": [
+    {
+     "id": "toolu_bdrk_016KsJG9DqGRn5btNwKx5qZg",
+     "input": {
+      "use_case": "UC2 – Ice-cream sales: do hot days and public holidays raise our sales? (Valdena Gelato Shop, IT)",
+      "objective_summary": "Decide whether hot days (daily max temperature) and Italian public holidays measurably raise daily ice-cream sales at the shop, so that weekly orders can be planned around them. The plan first confirms that daily sales history exists for 2023-06-01 to 2025-05-31 (and recent window to 2026-03-31), that product codes can be mapped across the 2024 code change, and that weather and holiday covariates can be joined on date for a justified shop location.",
+      "need_plans": [
+       {
+        "need_id": "N1",
+        "interpretation": "Internal daily sales per product (ice-cream SKU/product code) at the shop, covering history (2023-06-01 to 2025-05-31) and recent (2025-06-01 to 2026-03-31) windows, at daily grain or finer, with a date key and quantity/revenue per product.",
+        "internal_queries": [
+         "daily sales ice cream by product",
+         "gelato sales daily export",
+         "POS transactions daily summary Valdena",
+         "vendite gelato giornaliere per prodotto",
+         "SKU daily quantity sold shop",
+         "cassa scontrini articoli giornaliero"
+        ],
+        "external_data_hints": [],
+        "register_ids": [],
+        "acceptance_criteria": [
+         "Daily grain or finer for every day in history and recent windows, or gaps are explicitly listed",
+         "Per-product identifier present and documented",
+         "Both windows covered without silent truncation; row counts per month reported",
+         "Quantity and/or revenue field with currency and unit stated",
+         "Data owner and refresh cadence recorded (unknown if not stated)"
+        ],
+        "likely_pitfalls": [
+         "Product codes changed in 2024; the same product may appear under two codes",
+         "Days with zero sales may be absent rather than zero",
+         "Opening-day gaps mistaken for zero demand",
+         "Timezone or till-day cut-off shifting sales across dates",
+         "Refund/void lines inflating or deflating quantities"
+        ]
+       },
+       {
+        "need_id": "N2",
+        "interpretation": "A static mapping table (old code to new code, with validity dates and product description) that links product codes before and after the 2024 code change, so products can be compared across the break.",
+        "internal_queries": [
+         "product code mapping 2024 change",
+         "codice articolo vecchio nuovo",
+         "SKU crosswalk legacy codes",
+         "anagrafica prodotti cambio codici 2024",
+         "product master migration",
+         "item code remap gelato"
+        ],
+        "external_data_hints": [],
+        "register_ids": [],
+        "acceptance_criteria": [
+         "Every product sold in the history window maps to exactly one current code, or is flagged as unmapped",
+         "Mapping date/effective period stated for the 2024 change",
+         "Mapping covers both directions and is versioned or dated",
+         "Products that cannot be mapped are listed so the forecast can exclude them"
+        ],
+        "likely_pitfalls": [
+         "One-to-many mappings (product split or merged) silently double-counting",
+         "Renamed products with same code treated as the same product",
+         "Mapping maintained only in a wiki or spreadsheet with no date",
+         "Codes reused for different products after the change"
+        ]
+       },
+       {
+        "need_id": "N3",
+        "interpretation": "Daily maximum temperature (degrees C) for a justified shop location in northern Italy, covering both windows at daily grain, keyed by calendar date.",
+        "internal_queries": [
+         "temperature daily shop location",
+         "meteo temperatura massima",
+         "weather data Valdena",
+         "climate data city coordinates"
+        ],
+        "external_data_hints": [
+         "Use the Open-Meteo Historical Weather API (archive, reanalysis) for the chosen coordinates; daily temperature_2m_max, timezone stated, window 2023-06-01 to 2026-03-31. Record the chosen city as an assumption in decisions.md. Trap: reanalysis is modelled, not station observations; confirm the timezone used for the day boundary."
+        ],
+        "register_ids": [
+         "api.open_meteo_archive"
+        ],
+        "acceptance_criteria": [
+         "Daily max temperature present for every date in both windows",
+         "Coordinates and timezone recorded and justified as an assumption",
+         "Units stated (degrees C)",
+         "Terms: open-data licence accepted for prototyping and production per register"
+        ],
+        "likely_pitfalls": [
+         "Reanalysis is modelled, not station-measured; disclose",
+         "Timezone mismatch (UTC vs Europe/Rome) shifting the daily maximum",
+         "Probe calls should use short ranges only",
+         "Shop city not named in any source; location choice is an assumption"
+        ]
+       },
+       {
+        "need_id": "N4",
+        "interpretation": "Daily flag for Italian national public holidays (and regional ones if relevant) for every date in both windows, keyed by calendar date, with holiday name.",
+        "internal_queries": [
+         "public holidays Italy calendar",
+         "festivi calendario",
+         "holiday flags shop",
+         "giorni festivi chiusura"
+        ],
+        "external_data_hints": [
+         "Nager.Date public holidays API, country IT, years 2023 through 2026; check for regional holidays (e.g. local patron saints) which Nager may not carry and which may need a separate Italian source."
+        ],
+        "register_ids": [
+         "api.nager_public_holidays"
+        ],
+        "acceptance_criteria": [
+         "Every year covering both windows (2023-2026) returns a holiday list for IT",
+         "National holidays match the official Italian list; regional/local holidays flagged as missing if absent",
+         "Date key is calendar date; no timezone shift"
+        ],
+        "likely_pitfalls": [
+         "Regional or patron-saint holidays absent from national API",
+         "Holidays on weekends or shop closure days being confused with demand effects",
+         "Ferragosto and Easter Monday handling",
+         "Using a year outside the window"
+        ]
+       },
+       {
+        "need_id": "N5",
+        "interpretation": "Daily shop opening/closing days (including closures and holidays when shut) and dated local events that could affect footfall, at daily grain across both windows.",
+        "internal_queries": [
+         "shop opening hours",
+         "chiusura negozio giorni",
+         "closed days log Valdena",
+         "local events calendar shop",
+         "store calendar closures",
+         "eventi locali Valdena"
+        ],
+        "external_data_hints": [
+         "Local event calendar from the municipality or regional tourism portal for the shop's chosen town, daily grain, 2023-2026. Trap: event lists are often incomplete or undated; record coverage gaps."
+        ],
+        "register_ids": [],
+        "acceptance_criteria": [
+         "Opening/closure status available per day in both windows, or gaps listed",
+         "Event source named with publisher, dates and geography",
+         "Events have start and end dates at daily grain"
+        ],
+        "likely_pitfalls": [
+         "Closed days recorded as zero sales",
+         "Opening hours changed over time without a dated record",
+         "Event lists incomplete or back-dated"
+        ]
+       }
+      ],
+      "open_questions": [
+       "Which Italian town is the shop in? Needed to choose Open-Meteo coordinates (no source names the city); the choice must be recorded as an assumption in decisions.md.",
+       "Do the internal POS exports include a per-product key that is stable across the 2024 code change, or is a manual mapping required?",
+       "Are there regional or local Italian holidays that apply to the shop's town and must be added beyond the national list?",
+       "Is there a dated record of shop closures and opening-hour changes for 2023-2026?",
+       "Does the owner accept modelled reanalysis temperature instead of station observations for the weather covariate?",
+       "Gap between windows: history ends 2025-05-31 and recent starts 2025-06-01; confirm there is no missing data at the boundary and that the recent window ends 2026-03-31 as specified."
+      ]
+     },
+     "name": "submit_search_plan",
+     "type": "tool_use"
+    }
+   ]
+  },
+  {
+   "role": "user",
+   "content": [
+    {
+     "type": "tool_result",
+     "tool_use_id": "toolu_bdrk_016KsJG9DqGRn5btNwKx5qZg",
+     "content": "accepted"
+    }
+   ]
+  }
+ ]
+}

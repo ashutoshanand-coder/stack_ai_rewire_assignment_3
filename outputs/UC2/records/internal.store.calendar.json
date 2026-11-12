@@ -1,0 +1,125 @@
+{
+  "source_id": "internal.store.calendar",
+  "kind": "internal",
+  "title": "Shop calendar (opening days, closures, local events)",
+  "summary": "Internal daily calendar for the Valdena Gelato shop, one row per day, with a boolean is_open flag and a free-text event_name for local events. Owned by Store Operations, stewarded by Elena Russo, and stored at azure://valdena-gelato/store/calendar. Catalog states temporal coverage from 2022-01-01 with no end date, weekly refresh, and about 1,500 rows. No wiki page documents the table. Data was not sampled, so content and population of event_name are unverified.",
+  "schema": {
+    "documented": "structured",
+    "field_count": 3,
+    "fields": [
+      {
+        "name": "calendar_date",
+        "type": "date",
+        "description": "Day",
+        "pii": false
+      },
+      {
+        "name": "is_open",
+        "type": "boolean",
+        "description": "Whether the shop was open",
+        "pii": false,
+        "unit": null
+      },
+      {
+        "name": "event_name",
+        "type": "string",
+        "description": "Local event that day, if any",
+        "pii": false
+      }
+    ],
+    "notes": "Column descriptions are one line each. No formats, units, event geography, or allowed values are documented."
+  },
+  "temporal": {
+    "start": "2022-01-01",
+    "end": null,
+    "grain": "daily",
+    "metadata_last_updated": "2026-10-10",
+    "open_ended": true,
+    "refresh_cadence": "weekly"
+  },
+  "spatial": {
+    "coverage": [
+      "IT"
+    ],
+    "code_system": "free-text event_name; no location key",
+    "notes": "The shop is in northern Italy per the use-case spec. The table has no location or region column, so event geography is not stated."
+  },
+  "ownership": {
+    "owner": "Store Operations",
+    "publisher": null,
+    "steward": "Elena Russo"
+  },
+  "licence": {
+    "name": "internal",
+    "evidence": "get_catalog_entry internal.store.calendar: classification 'internal'; contains_pii false. No licence field in the catalog entry.",
+    "commercial_use": "not_applicable",
+    "url": null,
+    "agreement_status": null,
+    "attribution_text": null,
+    "mixed_sources": false
+  },
+  "access": {
+    "method": "warehouse_sql",
+    "auth_required": null,
+    "reachable": null,
+    "classification": "internal",
+    "request_process": "Open to analytics roles (catalog). Other access terms not stated.",
+    "approx_size_bytes": null
+  },
+  "declared_metadata": {
+    "contains_pii": false,
+    "classification": "internal",
+    "grain": "daily",
+    "row_count_approx": 1500,
+    "refresh_cadence": "weekly",
+    "status": "active"
+  },
+  "documentation_excerpts": [
+    "Opening days, closures and local events for the shop.",
+    "is_open: Whether the shop was open",
+    "event_name: Local event that day, if any",
+    "Till system replacement wiki (till_migration_2024): 'No sales were recorded in that period. Treat those days as missing, not as zero sales.' (period 2024-02-05 to 2024-03-10)"
+  ],
+  "quality_notes": [
+    "Row count vs coverage conflict: catalog gives about 1,500 rows, but daily grain from 2022-01-01 to last refresh 2026-10-10 would be roughly 4,660 rows. Either the table has gaps or the row count is stale. Not resolved.",
+    "No wiki page links to this entry (catalog wiki_backlinks is empty). The only related wiki page found by search is till_migration_2024 (Retail Operations, last edited 2024-03-12). It covers sales, not the calendar, and does not say whether is_open was recorded for 2024-02-05 to 2024-03-10.",
+    "is_open = false must not be read as zero demand. Closed days are a separate state from days with zero sales, and the calendar does not record why a shop closed.",
+    "event_name is free text with no stated publisher, date format, event geography, or population rate. The share of populated values is unknown.",
+    "Refresh: weekly per catalog, last_refreshed 2026-10-10 vs catalog export 2026-10-14. Whether the window 2025-06-01 to 2026-03-31 is complete is unverified.",
+    "Opening-hour changes and the history of closures are not documented."
+  ],
+  "provenance": [
+    {
+      "claim": "Source is an internal daily shop calendar with is_open and event_name, owned by Store Operations, steward Elena Russo, status active",
+      "evidence": "get_catalog_entry internal.store.calendar"
+    },
+    {
+      "claim": "Temporal coverage 2022-01-01 to open-ended, weekly refresh, last refreshed 2026-10-10, approx 1,500 rows",
+      "evidence": "get_catalog_entry internal.store.calendar (temporal_coverage, refresh_cadence, last_refreshed, row_count_approx)"
+    },
+    {
+      "claim": "No wiki page links to the calendar; the only related page is the till migration page",
+      "evidence": "get_catalog_entry internal.store.calendar (wiki_backlinks empty); search_internal_catalog 'shop calendar opening days closures local events' returned till_migration_2024"
+    },
+    {
+      "claim": "Sales were not recorded 2024-02-05 to 2024-03-10 and those days must be treated as missing, not zero",
+      "evidence": "read_wiki_page till_migration_2024 (last_edited 2024-03-12)"
+    },
+    {
+      "claim": "Table was not sampled; location is an azure:// URI that is not an allowlisted https endpoint",
+      "evidence": "No sample_data_file or probe call was made on internal.store.calendar; location field in catalog entry"
+    }
+  ],
+  "unknowns": [
+    "Actual row count and whether there are gaps in dates (catalog says about 1,500 rows against about 4,660 expected days)",
+    "Share of event_name values populated, their format, and whether they are local to the shop's area",
+    "Whether is_open was recorded for the 2024-02-05 to 2024-03-10 till outage",
+    "Whether the calendar was consistently maintained before 2024 and in 2025-2026",
+    "Access rights and whether the analytics role described in the catalog can read the table",
+    "Any opening-hour changes or partial-day closures (not represented)",
+    "Who publishes the event information and how it is verified"
+  ],
+  "canonical_ref": null,
+  "location": "azure://valdena-gelato/store/calendar",
+  "status": "active"
+}

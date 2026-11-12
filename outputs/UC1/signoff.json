@@ -1,0 +1,44 @@
+{
+  "reviewer": "Ashutosh Anand",
+  "verdict": "proceed_with_conditions",
+  "conditions": [
+    {
+      "text": "Obtain warehouse access to internal.airq.station_readings, confirm 2024-2025 export completeness, and reconcile station VR-03 status (switched off 2024-06-30 in wiki vs active in catalog).",
+      "owner": "Environment Monitoring Unit / Giulia Rossi",
+      "due": "2026-11-26"
+    },
+    {
+      "text": "Obtain counter-to-station mapping and documented adjustment or post-2024-03-18 split for internal.traffic.hourly_counts.",
+      "owner": "Mobility Office",
+      "due": "2026-11-26"
+    },
+    {
+      "text": "Confirm legal basis, respiratory diagnosis definition, district code list, and small-cell suppression rule for internal.clinic.resp_visits_daily.",
+      "owner": "Clinical Analytics / Data Protection Office",
+      "due": "2026-11-26"
+    }
+  ],
+  "agreements": [
+    {
+      "source_id": "link.uci_360",
+      "reason": "Agree with rejecting UCI 360 for prototype N1 due to metadata contradiction on missing values (-200 sentinels), staleness (ends 2005-02-28), and single-site scope."
+    },
+    {
+      "source_id": "link.data_open_air_chicago_hour_aggre_d4970b",
+      "reason": "Agree with rejecting Chicago air quality data as unreachable (DOMAIN_NOT_ALLOWLISTED) and outside Italy."
+    }
+  ],
+  "overrides": [
+    {
+      "source_id": "internal.airq.station_readings",
+      "from_verdict": "not_feasible",
+      "to_verdict": "feasible_with_conditions",
+      "reason": "Narrowing scope to production window (2024-2025) allows proceeding once Environment Monitoring Unit grants access and supplies station coordinates."
+    }
+  ],
+  "traced_conclusion": {
+    "source_id": "link.uci_360",
+    "record_field": "declared_metadata.has_missing_values",
+    "could_change_if": "The dataset owner corrected the metadata and explicitly permitted non-research civic prototyping use, allowing UCI 360 to serve purely as a local code-prototyping sandbox."
+  }
+}

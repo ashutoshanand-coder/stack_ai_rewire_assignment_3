@@ -1,0 +1,138 @@
+{
+  "source_id": "api.open_meteo_archive",
+  "kind": "public_api",
+  "title": "Open-Meteo Historical Weather API (reanalysis), daily max temperature for a point location",
+  "summary": "Gridded, model-based historical weather reanalysis served as JSON by point coordinates. For UC2 it can supply the daily maximum 2 m temperature (temperature_2m_max, °C) at a chosen northern-Italy location, with daily aggregates computed in a timezone of the caller's choice. Grain is hourly underlying, daily when requested. Probes confirmed responses for 2023-06-01, 2025-06-01 and 2026-03-30/31 at Milan-area coordinates; the shop's actual town is not named in any source, so the location is an assumption still to be set.",
+  "schema": {
+    "documented": "structured",
+    "field_count": 5,
+    "fields": [
+      {
+        "name": "daily.time",
+        "type": "date string (ISO8601)",
+        "description": "Day of observation, in the requested timezone",
+        "unit": null,
+        "pii": false
+      },
+      {
+        "name": "daily.temperature_2m_max",
+        "type": "float",
+        "description": "Daily maximum 2 m air temperature",
+        "unit": "°C",
+        "pii": false
+      },
+      {
+        "name": "hourly.time",
+        "type": "datetime string (ISO8601)",
+        "description": "Hourly time stamps returned by the default query",
+        "unit": null,
+        "pii": false
+      },
+      {
+        "name": "hourly.temperature_2m",
+        "type": "float",
+        "description": "Hourly 2 m air temperature (returned by the register default query)",
+        "unit": "°C",
+        "pii": false
+      },
+      {
+        "name": "hourly.shortwave_radiation",
+        "type": "float",
+        "description": "Shortwave radiation (returned by the register default query)",
+        "unit": "W/m²",
+        "pii": false
+      }
+    ],
+    "notes": "Field names and units read from live JSON responses (call_public_api probes). Parameter list from the register param_notes; the docs page (docs_url) was not read."
+  },
+  "temporal": {
+    "start": "2023-06-01",
+    "end": null,
+    "grain": "daily",
+    "metadata_last_updated": null,
+    "open_ended": null,
+    "refresh_cadence": "unknown"
+  },
+  "spatial": {
+    "coverage": [
+      "IT"
+    ],
+    "code_system": "decimal latitude/longitude (WGS84); no place names or ISO codes",
+    "notes": "Register default coordinates are 38.72 N, -9.14 (Lisbon, Portugal), which is outside the use case geography. Probes used 45.46 N, 9.19 E (Milan area), which the API snapped to grid point 45.448154, 9.169279, elevation 138 m. The shop's town is not named in any source, so the coordinates are an unverified assumption for the owner to confirm."
+  },
+  "ownership": {
+    "owner": null,
+    "publisher": "Open-Meteo.com (provider of the API; underlying weather data from national services and Copernicus Climate Change Service C3S)",
+    "steward": null
+  },
+  "licence": {
+    "name": "CC BY 4.0",
+    "evidence": "probe_url https://open-meteo.com/en/licence: 'API data are offered under Attribution 4.0 International (CC BY 4.0)'. The same page lists upstream sources with differing licences (e.g. DWD and ECMWF CC-BY, UK Met Office CC-BY-SA, C3S reanalysis and Météo-France labelled only 'Licence' with a Copernicus licence PDF link, not read). Register policy.open_data_links: prototyping, benchmarking and context allowed; production use needs Legal sign-off.",
+    "agreement_status": "not_required_open_data",
+    "commercial_use": "unknown",
+    "attribution_text": "Weather data by Open-Meteo.com (link required next to any displayed location data, per licence page)",
+    "mixed_sources": true,
+    "url": "https://open-meteo.com/en/licence"
+  },
+  "access": {
+    "method": "rest_api",
+    "auth_required": false,
+    "reachable": true,
+    "approx_size_bytes": null,
+    "classification": null,
+    "request_process": "Public GET to https://archive-api.open-meteo.com/v1/archive with latitude, longitude, start_date, end_date, daily=temperature_2m_max, timezone=Europe/Rome. Keep probe ranges short; full pull size not measured."
+  },
+  "declared_metadata": {
+    "register_approved_purposes": "prototyping, production",
+    "register_agreement_status": "not_required_open_data",
+    "register_default_timezone": "UTC",
+    "register_default_coordinates": "38.72, -9.14 (Lisbon)",
+    "has_missing_values": null,
+    "contains_pii": false
+  },
+  "documentation_excerpts": [
+    "Register param_notes: 'latitude/longitude decimal degrees; start_date/end_date YYYY-MM-DD; hourly or daily variable lists. Keep probe ranges to a few days.'",
+    "Licence page: 'API data are offered under Attribution 4.0 International (CC BY 4.0)'",
+    "Licence page: 'Weather reanalysis, air quality forecasts and elevation data from Copernicus Climate Change Service C3S ( Licence )'"
+  ],
+  "quality_notes": [
+    "Register default_query uses Lisbon coordinates (38.72, -9.14) and timezone UTC; neither suits a northern-Italy shop. A daily maximum in UTC would split local days, so the query must set timezone=Europe/Rome (confirmed to return daily.time in local dates in probes) or the day boundary must be justified.",
+    "Data is modelled reanalysis on a grid, not station observations. The returned point (45.448154, 9.169279, 138 m) is a grid cell, not the shop's location; local heat exposure may differ. Disclose to owner.",
+    "Town not named in any source: coordinates used in probes (Milan area) are an illustration only and need an owner-confirmed assumption recorded in decisions.md.",
+    "Catalog candidate stated coverage 2023-06-01 to 2026-03-31. Confirmed by probes: 2023-06-01/02 returned (2 days), 2025-06-01/03 returned (3 days), 2026-03-30/31 returned (2 days). Coverage between those windows was not sampled and the archive's latest available date beyond 2026-03-31 was not tested.",
+    "Register default_query requests hourly variables; the probe responses also returned hourly temperature_2m and shortwave_radiation even when only daily was requested in the probe. Request only what is needed.",
+    "Upstream licences differ (see licence.mixed_sources). Copernicus C3S licence terms were not read; Legal review needed before production use."
+  ],
+  "provenance": [
+    {
+      "claim": "Register entry: endpoint https://archive-api.open-meteo.com/v1/archive, agreement not required (open data), approved for prototyping and production, default coordinates 38.72/-9.14 and timezone UTC",
+      "evidence": "list_external_register (api.open_meteo_archive)"
+    },
+    {
+      "claim": "Daily max temperature returned in °C for 2025-06-01 to 2025-06-03 with timezone Europe/Rome, HTTP 200, grid point 45.448154/9.169279, elevation 138 m",
+      "evidence": "call_public_api api.open_meteo_archive, start 2025-06-01 end 2025-06-03"
+    },
+    {
+      "claim": "Responses also returned for 2023-06-01 to 2023-06-02 and 2026-03-30 to 2026-03-31",
+      "evidence": "call_public_api api.open_meteo_archive, two probes (2023-06-01..02 and 2026-03-30..31)"
+    },
+    {
+      "claim": "API data licensed CC BY 4.0; upstream sources with differing licences; C3S reanalysis under Copernicus licence",
+      "evidence": "probe_url https://open-meteo.com/en/licence"
+    },
+    {
+      "claim": "Production use of external data needs Legal sign-off; prototyping and context allowed without agreement",
+      "evidence": "list_external_register (policy.open_data_links)"
+    }
+  ],
+  "unknowns": [
+    "Shop town and therefore the correct coordinates (not named in any source)",
+    "Refresh cadence and latest available date of the archive",
+    "Whether the reanalysis product used for the request is ERA5-based and its exact licence terms under Copernicus",
+    "Full-window coverage between probed dates and any gaps",
+    "Validity of the modelled values against the shop's local observations",
+    "Legal position for production use (Legal sign-off needed per register policy)",
+    "Commercial-use status of the CC BY 4.0 data given upstream differences (CC BY permits commercial use in general, but not confirmed for the mixed upstream sources)",
+    "API docs page (docs_url) not read; variable definitions (e.g. exact reanalysis model) not confirmed"
+  ]
+}

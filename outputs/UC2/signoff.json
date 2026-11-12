@@ -1,0 +1,37 @@
+{
+  "reviewer": "Ashutosh Anand",
+  "verdict": "proceed_with_conditions",
+  "conditions": [
+    {
+      "text": "Supply pre-2024-04-01 product code list and documented old-to-new product_code mapping for internal.sales.products and internal.sales.daily_by_product.",
+      "owner": "Retail Operations",
+      "due": "2026-11-26"
+    },
+    {
+      "text": "Approve warehouse access to internal.sales.daily_by_product and confirm 2024-02-05 to 2024-03-10 till migration outage rows are treated as missing rather than zero.",
+      "owner": "Retail Operations",
+      "due": "2026-11-26"
+    },
+    {
+      "text": "Confirm exact Valdena shop coordinates for Open-Meteo and obtain Legal sign-off for production use of Open-Meteo and Nager.Date holiday data.",
+      "owner": "Shop Owner / Legal",
+      "due": "2026-11-26"
+    }
+  ],
+  "agreements": [
+    {
+      "source_id": "internal.sales.products",
+      "reason": "Agree that sales.products cannot satisfy N2 alone because it only contains post-2024-04-01 product codes and duplicate product names prevent reliable name joins."
+    },
+    {
+      "source_id": "api.open_meteo_archive",
+      "reason": "Agree with feasible_with_conditions for N3 daily max temperature once Valdena coordinates replace the Lisbon default and Legal clears C3S terms."
+    }
+  ],
+  "overrides": [],
+  "traced_conclusion": {
+    "source_id": "internal.sales.daily_by_product",
+    "record_field": "temporal.start",
+    "could_change_if": "Retail Operations fails to provide a pre-2024-04-01 product code mapping table, which would force restricting the historical modeling window to post-2024-04-01 data only."
+  }
+}

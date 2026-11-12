@@ -1,0 +1,125 @@
+{
+  "source_id": "internal.airq.station_readings",
+  "kind": "internal",
+  "title": "City station readings (hourly): NO2 and PM2.5 from city monitoring stations",
+  "summary": "Hourly NO2 (ug/m3) and PM2.5 (ug/m3) readings from the city's own monitoring stations, keyed by station_id with an hourly UTC timestamp (ts_utc). The catalog gives about 4.2 million rows, an hourly refresh and a temporal coverage starting 2023-01-01 with no end date. The wiki says station VR-03 stopped reporting on 2024-06-30 and the other stations report continuously from 2023-01-01. It covers the production window (2024-2025) only if the export is complete; it does not cover the prototype window (2004-2005).",
+  "schema": {
+    "documented": "structured",
+    "field_count": 4,
+    "fields": [
+      {
+        "name": "station_id",
+        "type": "string",
+        "description": "Monitoring station code",
+        "pii": false
+      },
+      {
+        "name": "ts_utc",
+        "type": "timestamp",
+        "description": "Hour start, UTC",
+        "pii": false,
+        "unit": "UTC"
+      },
+      {
+        "name": "no2_ugm3",
+        "type": "numeric",
+        "description": "NO2 concentration, micrograms per cubic metre",
+        "pii": false,
+        "unit": "ug/m3"
+      },
+      {
+        "name": "pm25_ugm3",
+        "type": "numeric",
+        "description": "PM2.5 concentration, micrograms per cubic metre",
+        "pii": false,
+        "unit": "ug/m3"
+      }
+    ],
+    "notes": "No station coordinates, station name or quality-flag column is documented in the catalog entry."
+  },
+  "temporal": {
+    "start": "2023-01-01",
+    "end": null,
+    "grain": "hourly",
+    "metadata_last_updated": "2026-10-14",
+    "open_ended": true,
+    "refresh_cadence": "hourly"
+  },
+  "spatial": {
+    "coverage": [
+      "IT"
+    ],
+    "code_system": "free-text station codes (station_id); no coordinates documented",
+    "notes": "City of Valdena (fictional, northern Italy) station network. Station VR-03 (Via Roma) has no readings after 2024-06-30 per wiki station_network. Joins to weather or traffic by location cannot be verified from metadata."
+  },
+  "ownership": {
+    "owner": "Environment Monitoring Unit",
+    "publisher": null,
+    "steward": "Giulia Rossi"
+  },
+  "licence": {
+    "name": "internal",
+    "agreement_status": null,
+    "attribution_text": null,
+    "commercial_use": "not_applicable",
+    "evidence": "get_catalog_entry internal.airq.station_readings: classification 'internal'; no licence field present",
+    "mixed_sources": false,
+    "url": null
+  },
+  "access": {
+    "method": "warehouse_sql",
+    "auth_required": true,
+    "reachable": null,
+    "classification": "internal",
+    "approx_size_bytes": null,
+    "request_process": "Request to the Environment Monitoring Unit (catalog access.request_process). Location azure://valdena-health/env/station_readings. Not tested: no connection attempted, access request not yet made."
+  },
+  "declared_metadata": {
+    "status": "active",
+    "contains_pii": false,
+    "classification": "internal",
+    "row_count_approx": 4200000,
+    "refresh_cadence": "hourly",
+    "last_refreshed": "2026-10-14",
+    "catalog_exported_at": "2026-10-14T06:00:00Z"
+  },
+  "documentation_excerpts": [
+    "catalog description: 'Hourly NO2 and PM2.5 readings from the city's own monitoring stations.'",
+    "catalog ts_utc: 'Hour start, UTC'",
+    "wiki station_network (last_edited 2024-07-01): 'Station VR-03 (Via Roma) was switched off on 2024-06-30. Its readings stop there.'",
+    "wiki station_network: '`airq.station_readings` still lists the network as active. Station VR-03 has no readings after 2024-06-30.'",
+    "wiki station_network: 'The other stations report continuously from 2023-01-01.'"
+  ],
+  "quality_notes": [
+    "Coverage: catalog temporal_coverage starts 2023-01-01 (end null). Does not cover the prototype window 2004-03-10 to 2005-04-04 (need N1 prototype unmet by this source).",
+    "Station VR-03 (Via Roma): wiki station_network (last_edited 2024-07-01) says readings stop 2024-06-30; catalog status 'active' and temporal_coverage end null do not mention this. Record both: catalog (open-ended, active) vs wiki (VR-03 off from 2024-06-30). Wiki is dated 2024-07-01 and may not reflect later changes.",
+    "Wiki says the other stations 'report continuously from 2023-01-01' but no completeness figure, gap log or uptime is documented; 'continuously' is an unverified claim.",
+    "No documented handling of sensor-fault zeros, negatives or missing-value codes for no2_ugm3 or pm25_ugm3; no quality-flag column in the catalog.",
+    "No station coordinates, station names or station-to-location mapping in the catalog; matching to weather or traffic by location is not verifiable from metadata.",
+    "Units documented as ug/m3 in column descriptions; no documentation of averaging method, calibration or validation status.",
+    "Does not carry traffic (N2) or weather (N3) data; it is a single-source for N1 only.",
+    "Row count of 4.2 million is approximate and not dated; no check of whether the 2024-2025 export is complete was possible."
+  ],
+  "provenance": [
+    {
+      "claim": "Catalog entry: owner Environment Monitoring Unit, steward Giulia Rossi, status active, classification internal, grain hourly, temporal_coverage 2023-01-01 to null, refresh hourly, last_refreshed 2026-10-14, ~4.2M rows, access warehouse_sql with request to the unit.",
+      "evidence": "get_catalog_entry internal.airq.station_readings"
+    },
+    {
+      "claim": "Column set is station_id, ts_utc (hour start UTC), no2_ugm3, pm25_ugm3; no coordinates or quality-flag column documented.",
+      "evidence": "get_catalog_entry internal.airq.station_readings (columns)"
+    },
+    {
+      "claim": "Station VR-03 (Via Roma) switched off 2024-06-30; other stations report continuously from 2023-01-01; catalog still lists the network as active.",
+      "evidence": "read_wiki_page station_network (last_edited 2024-07-01)"
+    }
+  ],
+  "unknowns": [
+    "Whether the 2024-01-01 to 2025-12-31 export is complete for all stations (not tested; no access attempted).",
+    "Station coordinates or location mapping (needed to join with weather and traffic).",
+    "Handling of sensor faults, zeros, negatives or missing values; no sample was read because access was not attempted.",
+    "Licence or data-use terms beyond internal classification; access approval outcome.",
+    "Whether any station other than VR-03 has had outages or changes after the wiki's last edit on 2024-07-01.",
+    "Data period beyond 2023-01-01 start; any pre-2023 archive (needed for prototype window) is not documented."
+  ]
+}

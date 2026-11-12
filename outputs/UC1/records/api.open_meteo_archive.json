@@ -1,0 +1,119 @@
+{
+  "source_id": "api.open_meteo_archive",
+  "kind": "public_api",
+  "title": "Open-Meteo Historical Weather API (reanalysis, hourly temperature and humidity)",
+  "summary": "Open-Meteo archive endpoint returning hourly reanalysis values (temperature_2m in °C, relative_humidity_2m in %) for any latitude/longitude on a grid, not station observations. Probes at northern-Italy coordinates (45.46, 9.19) returned 72 hourly rows each for 2004-03-10 to 2004-03-12 and for 2024-01-01 to 2024-01-03, so both UC1 windows respond; the grid point returned was 45.45/9.17 at 138 m elevation. The client city is not named in any source, so the coordinates used here are a probe value only, not a confirmed site.",
+  "schema": {
+    "documented": "structured",
+    "field_count": 3,
+    "fields": [
+      {
+        "name": "time",
+        "type": "string",
+        "description": "Hourly timestamp, ISO8601, in the requested timezone (UTC in the register default)",
+        "unit": "iso8601"
+      },
+      {
+        "name": "temperature_2m",
+        "type": "number",
+        "description": "Air temperature at 2 m",
+        "unit": "°C"
+      },
+      {
+        "name": "relative_humidity_2m",
+        "type": "number",
+        "description": "Relative humidity at 2 m",
+        "unit": "%"
+      }
+    ],
+    "notes": "Field list taken from the API response shape (hourly_units). Response also carries latitude, longitude, elevation and utc_offset_seconds as metadata. No docs fetched in this profile; docs_url is https://open-meteo.com/en/docs/historical-weather-api (not read)."
+  },
+  "temporal": {
+    "start": null,
+    "end": null,
+    "grain": "hourly",
+    "metadata_last_updated": null,
+    "open_ended": null,
+    "refresh_cadence": null
+  },
+  "spatial": {
+    "code_system": "decimal latitude/longitude; grid points snapped to nearest reanalysis cell",
+    "coverage": [
+      "global"
+    ],
+    "notes": "Queried by coordinates. Tested at 45.46, 9.19 (returned grid 45.448154, 9.169279). Register default is Lisbon 38.72, -9.14, which is not the client location. Client site coordinates are unknown and must be recorded as an assumption."
+  },
+  "ownership": {
+    "owner": null,
+    "publisher": "Open-Meteo.com (API provider); underlying reanalysis from Copernicus Climate Change Service C3S / ECMWF per licence page",
+    "steward": null
+  },
+  "licence": {
+    "name": "CC BY 4.0 (Open-Meteo API data, as stated by provider); upstream reanalysis licence for C3S data not confirmed",
+    "evidence": "probe_url https://open-meteo.com/en/licence (fetched 200): 'API data are offered under Attribution 4.0 International (CC BY 4.0)'; the same page lists 'Weather reanalysis, air quality forecasts and elevation data from Copernicus Climate Change Service C3S ( Licence )' with a C3S licence link, and lists DWD, ECMWF and others as CC-BY. Register policy.open_data_links: open-data allowed for prototyping, benchmarking, context; production use needs Legal sign-off.",
+    "mixed_sources": true,
+    "url": "https://open-meteo.com/en/licence",
+    "agreement_status": "not_required_open_data (register api.open_meteo_archive); production use still needs Legal sign-off under policy.open_data_links",
+    "attribution_text": "Weather data by Open-Meteo.com (link required per licence page)",
+    "commercial_use": "unknown"
+  },
+  "access": {
+    "method": "rest_api",
+    "auth_required": false,
+    "reachable": true,
+    "request_process": "Register approved_purposes: prototyping, production. Policy: production use of any external dataset needs Legal sign-off.",
+    "approx_size_bytes": null,
+    "classification": "public"
+  },
+  "declared_metadata": {
+    "agreement_status": "not_required_open_data",
+    "approved_purposes": [
+      "prototyping",
+      "production"
+    ],
+    "default_query_timezone": "UTC",
+    "default_query_coordinates": "38.72, -9.14 (Lisbon)",
+    "default_query_hourly": "temperature_2m,shortwave_radiation"
+  },
+  "documentation_excerpts": [
+    "Register api.open_meteo_archive param_notes: 'latitude/longitude decimal degrees; start_date/end_date YYYY-MM-DD; hourly or daily variable lists. Keep probe ranges to a few days.'",
+    "Open-Meteo licence page: 'API data are offered under Attribution 4.0 International (CC BY 4.0)'",
+    "Open-Meteo licence page: 'Weather reanalysis, air quality forecasts and elevation data from Copernicus Climate Change Service C3S ( Licence )'",
+    "Register policy.open_data_links: 'Production use of any external dataset needs Legal sign-off.'"
+  ],
+  "quality_notes": [
+    "Reanalysis grid, not station observations. Humidity and temperature at grid cell (elevation 138 m in probe) may differ from the city's station readings; document before modelling.",
+    "Register default coordinates are Lisbon (38.72, -9.14), not the client city. Client coordinates unknown; record as an assumption in decisions.md.",
+    "Register default timezone is UTC; the wiki/station ts_utc and traffic ts_local must be aligned before joins. Probe returned utc_offset_seconds 0.",
+    "Licence conflict: register says open-data policy allows prototyping and production with agreement_status not_required_open_data, but policy.open_data_links says production use needs Legal sign-off. Treat production use as pending Legal sign-off.",
+    "Upstream C3S reanalysis licence is listed on the Open-Meteo licence page but its terms were not read; mixed upstream terms are possible.",
+    "Register notes candidate's suspected issue that the terms need Legal sign-off: confirmed by policy.open_data_links, not by the Open-Meteo terms page itself."
+  ],
+  "provenance": [
+    {
+      "claim": "Endpoint https://archive-api.open-meteo.com/v1/archive, status not_required_open_data, approved purposes prototyping and production, default timezone UTC and Lisbon coordinates",
+      "evidence": "list_external_register (api.open_meteo_archive); policy.open_data_links notes"
+    },
+    {
+      "claim": "Endpoint responds with hourly temperature_2m (°C) and relative_humidity_2m (%) for 2024-01-01 to 2024-01-03 and 2004-03-10 to 2004-03-12, 72 hourly values each, grid 45.448154/9.169279, elevation 138 m",
+      "evidence": "call_public_api (api.open_meteo_archive, lat 45.46, lon 9.19, two probes)"
+    },
+    {
+      "claim": "API data offered under CC BY 4.0; C3S reanalysis listed with separate Copernicus licence; mixed upstream sources",
+      "evidence": "probe_url https://open-meteo.com/en/licence"
+    },
+    {
+      "claim": "Production use of external datasets needs Legal sign-off",
+      "evidence": "list_external_register (policy.open_data_links)"
+    }
+  ],
+  "unknowns": [
+    "Client city and site coordinates (none named in any source); the probe used northern-Italy coordinates only as a test point.",
+    "Source's own stated coverage start and end date and its update lag (docs at docs_url not read); only the two probe windows were confirmed.",
+    "Whether the archive is refreshed and on what cadence.",
+    "Owner and steward of the client-side use; Legal sign-off status for production.",
+    "Size of a two-year hourly download (not stated; not measured).",
+    "Whether the C3S upstream licence imposes separate attribution or commercial limits (not read).",
+    "Accuracy of reanalysis humidity against the city's station data (not assessed; no station data was accessed)."
+  ]
+}
